@@ -797,6 +797,39 @@ function App() {
   const [mobilitySubTab, setMobilitySubTab] = useState("ankle");
   const [bodySubTab, setBodySubTab] = useState("measurements");
   const [viewPhaseIdx, setViewPhaseIdx] = useState(null);
+  const prevTabRef = useRef("home");
+  const touchStartRef = useRef(null);
+
+  useEffect(() => {
+    if (tab !== "home" && prevTabRef.current === "home") {
+      window.history.pushState({ tab }, "", "");
+    }
+    prevTabRef.current = tab;
+  }, [tab]);
+
+  useEffect(() => {
+    const handlePopState = () => setTab("home");
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  const goBack = useCallback(() => {
+    if (window.history.state && window.history.state.tab) window.history.back();
+    else setTab("home");
+  }, []);
+
+  const handleTouchStart = e => {
+    const t = e.touches[0];
+    touchStartRef.current = { x: t.clientX, y: t.clientY };
+  };
+  const handleTouchEnd = e => {
+    if (!touchStartRef.current || tab === "home") { touchStartRef.current = null; return; }
+    const t = e.changedTouches[0];
+    const dx = t.clientX - touchStartRef.current.x;
+    const dy = t.clientY - touchStartRef.current.y;
+    touchStartRef.current = null;
+    if (Math.abs(dx) > 70 && Math.abs(dy) < 50) goBack();
+  };
   const [data, setData] = useState(loadData());
   const [showForm, setShowForm] = useState(null);
   const [sessionsExtra, setSessionsExtra] = useState(0);
@@ -936,9 +969,9 @@ function App() {
           Deload week — reduced volume. Session logging shows suggested lighter numbers.
         </div>
       )}
-      <div style={{ flex: 1, overflowY: "auto", padding: "4px 18px 32px" }}>
+      <div style={{ flex: 1, overflowY: "auto", padding: "4px 18px 32px" }} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
 
-        {tab !== "home" && <BackHeader label={sectionLabel(tab)} onBack={() => setTab("home")} />}
+        {tab !== "home" && <BackHeader label={sectionLabel(tab)} onBack={goBack} />}
 
         {tab === "home" && (
           <div>
