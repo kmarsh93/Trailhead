@@ -22,7 +22,7 @@
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-<script type="text/babel" data-presets="react">
+<script type="text/plain" id="app-source">
 const { useState, useEffect, useCallback, useMemo, useRef } = React;
 
 const START_DATE = new Date("2026-07-27");
@@ -1467,6 +1467,16 @@ ReactDOM.createRoot(document.getElementById("root")).render(<App />);
 </script>
 
 <script>
+(function () {
+  var source = document.getElementById("app-source").textContent;
+  var transformed = Babel.transform(source, {
+    presets: [["react", { runtime: "classic" }]],
+  }).code;
+  var script = document.createElement("script");
+  script.textContent = transformed;
+  document.body.appendChild(script);
+})();
+
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => navigator.serviceWorker.register("service-worker.js").catch(() => {}));
 }
