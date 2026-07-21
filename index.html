@@ -385,12 +385,12 @@ const card = { background: "#FBF4E6", color: "#2B2318", borderRadius: "16px" };
 const ink = "#F3ECD9", bg = "#1F2E22", muted = "#8FA38C", gold = "#C1622B";
 
 const SECTIONS = [
-  { id: "schedule", label: "Week", icon: "📅" },
-  { id: "sessions", label: "Weights", icon: "🏋️" },
-  { id: "run", label: "Run", icon: "🏃" },
-  { id: "mobility", label: "Mobility", icon: "🧘" },
-  { id: "food", label: "Nutrition", icon: "🍽️" },
-  { id: "body", label: "Vitals", icon: "⚖️" },
+  { id: "schedule", label: "Week", icon: "Calendar" },
+  { id: "sessions", label: "Weights", icon: "Dumbbell" },
+  { id: "run", label: "Run", icon: "Footprints" },
+  { id: "mobility", label: "Mobility", icon: "PersonStanding" },
+  { id: "food", label: "Nutrition", icon: "Utensils" },
+  { id: "body", label: "Vitals", icon: "Activity" },
 ];
 
 function loadData() {
@@ -463,7 +463,7 @@ function Timeline({ data, onPhaseClick }) {
 function BackHeader({ label, onBack }) {
   return (
     <button onClick={onBack} style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", cursor: "pointer", color: ink, marginBottom: 14, padding: 0 }}>
-      <span style={{ fontSize: 18 }}>←</span>
+      <Icon name="ArrowLeft" size={18} color={ink} />
       <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 18, fontWeight: 700 }}>{label}</span>
     </button>
   );
@@ -472,7 +472,7 @@ function IconTile({ icon, label, onClick, badge }) {
   return (
     <button onClick={onClick} style={{ ...card, border: "none", cursor: "pointer", padding: "16px 10px", display: "flex", flexDirection: "column", alignItems: "center", gap: 8, position: "relative" }}>
       {badge && <div style={{ position: "absolute", top: 8, right: 8, background: gold, color: "#201B10", fontSize: 9, fontWeight: 700, borderRadius: 10, padding: "1px 6px" }}>{badge}</div>}
-      <span style={{ fontSize: 24 }}>{icon}</span>
+      <Icon name={icon} size={24} color={gold} />
       <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 14, fontWeight: 700 }}>{label}</span>
     </button>
   );
@@ -503,7 +503,7 @@ function ChecklistRow({ label, done, onClick, isLast }) {
     <button onClick={onClick} style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 0", width: "100%", background: "none", border: "none", borderBottom: isLast ? "none" : "1px solid #E2DCCB", cursor: "pointer", textAlign: "left" }}>
       <span style={{ width: 16, height: 16, borderRadius: 4, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center",
         background: done ? "#7A8F5C" : "transparent", border: done ? "none" : "1.5px solid #C1622B", color: "#FBF4E6", fontSize: 10 }}>
-        {done ? "✓" : ""}
+        {done && <Icon name="Check" size={11} color="#FBF4E6" strokeWidth={3} />}
       </span>
       <span style={{ fontSize: 13, color: done ? "#8A7B5C" : "#2B2318", textDecoration: done ? "line-through" : "none" }}>{label}</span>
     </button>
@@ -523,8 +523,8 @@ function Entry({ children, onDelete, onEdit }) {
     <div style={{ ...card, padding: "12px 14px", marginBottom: 10, position: "relative" }}>
       {(onDelete || onEdit) && (
         <div style={{ position: "absolute", top: 8, right: 8, display: "flex", gap: 6 }}>
-          {onEdit && <button onClick={onEdit} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "#6B6F63" }}>✎</button>}
-          {onDelete && <button onClick={onDelete} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 15, color: "#6B6F63", lineHeight: 0.7 }}>×</button>}
+          {onEdit && <button onClick={onEdit} style={{ background: "none", border: "none", cursor: "pointer", color: "#6B6F63", display: "flex" }}><Icon name="Pencil" size={13} /></button>}
+          {onDelete && <button onClick={onDelete} style={{ background: "none", border: "none", cursor: "pointer", color: "#6B6F63", display: "flex" }}><Icon name="X" size={14} /></button>}
         </div>
       )}
       {children}
@@ -542,10 +542,37 @@ function StatBadge({ label, value }) {
 function AddButton({ onClick, label }) {
   return (
     <button onClick={onClick} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", background: gold, color: "#201B10", fontWeight: 700, fontSize: 13, padding: "11px 0", borderRadius: 8, border: "none", cursor: "pointer", marginBottom: 14 }}>
-      + {label}
+      <Icon name="Plus" size={16} color="#201B10" /> {label}
     </button>
   );
 }
+const ICON_PATHS = {
+  Activity: "<path d=\"M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2\" />",
+  ArrowLeft: "<path d=\"m12 19-7-7 7-7\" /> <path d=\"M19 12H5\" />",
+  Calendar: "<path d=\"M8 2v4\" /> <path d=\"M16 2v4\" /> <rect width=\"18\" height=\"18\" x=\"3\" y=\"4\" rx=\"2\" /> <path d=\"M3 10h18\" />",
+  Check: "<path d=\"M20 6 9 17l-5-5\" />",
+  Database: "<ellipse cx=\"12\" cy=\"5\" rx=\"9\" ry=\"3\" /> <path d=\"M3 5V19A9 3 0 0 0 21 19V5\" /> <path d=\"M3 12A9 3 0 0 0 21 12\" />",
+  Download: "<path d=\"M12 15V3\" /> <path d=\"M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4\" /> <path d=\"m7 10 5 5 5-5\" />",
+  Dumbbell: "<path d=\"M17.596 12.768a2 2 0 1 0 2.829-2.829l-1.768-1.767a2 2 0 0 0 2.828-2.829l-2.828-2.828a2 2 0 0 0-2.829 2.828l-1.767-1.768a2 2 0 1 0-2.829 2.829z\" /> <path d=\"m2.5 21.5 1.4-1.4\" /> <path d=\"m20.1 3.9 1.4-1.4\" /> <path d=\"M5.343 21.485a2 2 0 1 0 2.829-2.828l1.767 1.768a2 2 0 1 0 2.829-2.829l-6.364-6.364a2 2 0 1 0-2.829 2.829l1.768 1.767a2 2 0 0 0-2.828 2.829z\" /> <path d=\"m9.6 14.4 4.8-4.8\" />",
+  Footprints: "<path d=\"M4 16v-2.38C4 11.5 2.97 10.5 3 8c.03-2.72 1.49-6 4.5-6C9.37 2 10 3.8 10 5.5c0 3.11-2 5.66-2 8.68V16a2 2 0 1 1-4 0Z\" /> <path d=\"M20 20v-2.38c0-2.12 1.03-3.12 1-5.62-.03-2.72-1.49-6-4.5-6C14.63 6 14 7.8 14 9.5c0 3.11 2 5.66 2 8.68V20a2 2 0 1 0 4 0Z\" /> <path d=\"M16 17h4\" /> <path d=\"M4 13h4\" />",
+  Info: "<circle cx=\"12\" cy=\"12\" r=\"10\" /> <path d=\"M12 16v-4\" /> <path d=\"M12 8h.01\" />",
+  Pencil: "<path d=\"M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z\" /> <path d=\"m15 5 4 4\" />",
+  PersonStanding: "<circle cx=\"12\" cy=\"5\" r=\"1\" /> <path d=\"m9 20 3-6 3 6\" /> <path d=\"m6 8 6 2 6-2\" /> <path d=\"M12 10v4\" />",
+  Plus: "<path d=\"M5 12h14\" /> <path d=\"M12 5v14\" />",
+  RotateCcw: "<path d=\"M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8\" /> <path d=\"M3 3v5h5\" />",
+  Upload: "<path d=\"M12 3v12\" /> <path d=\"m17 8-5-5-5 5\" /> <path d=\"M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4\" />",
+  Utensils: "<path d=\"M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2\" /> <path d=\"M7 2v20\" /> <path d=\"M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7\" />",
+  X: "<path d=\"M18 6 6 18\" /> <path d=\"m6 6 12 12\" />",
+};
+
+function Icon({ name, size = 20, color = "currentColor", strokeWidth = 2 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color}
+      strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"
+      dangerouslySetInnerHTML={{ __html: ICON_PATHS[name] }} />
+  );
+}
+
 function EmptyState({ text }) { return <div style={{ color: muted, fontSize: 13, padding: "18px 4px", fontStyle: "italic" }}>{text}</div>; }
 function ShowMoreButton({ remaining, onClick }) {
   if (remaining <= 0) return null;
@@ -737,7 +764,7 @@ function ExerciseChecklist({ exercises, onSubmit, submitLabel }) {
               <span style={{ fontSize: 12.5, fontWeight: 600 }}>{ex.name}</span>
               <span style={{ fontSize: 10.5, color: "#8A7B5C" }}>{ex.scheme}</span>
             </div>
-            <button onClick={() => setOpenInfo(openInfo === ex.name ? null : ex.name)} style={{ background: "none", border: "none", cursor: "pointer", color: "#8A7B5C", fontSize: 13 }}>ⓘ</button>
+            <button onClick={() => setOpenInfo(openInfo === ex.name ? null : ex.name)} style={{ background: "none", border: "none", cursor: "pointer", color: "#8A7B5C", display: "flex" }}><Icon name="Info" size={15} /></button>
           </div>
           {openInfo === ex.name && <div style={{ fontSize: 11.5, color: "#4A4D42", marginTop: 6, marginLeft: 24, lineHeight: 1.5, fontStyle: "italic" }}>{ex.instructions}</div>}
         </div>
@@ -901,7 +928,7 @@ function App() {
           <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 24, color: ink, fontWeight: 700 }}>{formatHeaderDate()}</div>
           <div style={{ fontSize: 12, color: muted }}>Jul 27, 2026 → May 8, 2027 · 40 weeks on trail</div>
         </div>
-        <button onClick={() => setTab("data")} aria-label="Data settings" style={{ background: "none", border: "none", cursor: "pointer", padding: 4, marginTop: 2, fontSize: 19 }}>💾</button>
+        <button onClick={() => setTab("data")} aria-label="Data settings" style={{ background: "none", border: "none", cursor: "pointer", padding: 4, marginTop: 2, display: "flex" }}><Icon name="Database" size={19} color={muted} /></button>
       </div>
       <Timeline data={data} onPhaseClick={i => { setViewPhaseIdx(i); setTab("phase"); }} />
       {deloadActive && (
@@ -1424,7 +1451,7 @@ function App() {
                             <span>{m.meal || "Meal"}</span>
                             <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
                               {m.kcal}kcal
-                              <button onClick={() => deleteMeal(idx)} style={{ background: "none", border: "none", cursor: "pointer", color: "#8A7B5C" }}>×</button>
+                              <button onClick={() => deleteMeal(idx)} style={{ background: "none", border: "none", cursor: "pointer", color: "#8A7B5C", display: "flex" }}><Icon name="X" size={12} /></button>
                             </span>
                           </div>
                         );
@@ -1445,15 +1472,15 @@ function App() {
               Everything logged here lives only on this device. Export a backup regularly, especially before switching phones.
             </div>
             <button onClick={exportDataFn} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", background: gold, color: "#201B10", fontWeight: 700, fontSize: 13, padding: "11px 0", borderRadius: 8, border: "none", cursor: "pointer", marginBottom: 10 }}>
-              ⬇ Export data
+              <Icon name="Download" size={16} color="#201B10" /> Export data
             </button>
             <button onClick={() => fileInputRef.current && fileInputRef.current.click()} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", background: "#E4DFD1", color: "#2B2318", fontWeight: 700, fontSize: 13, padding: "11px 0", borderRadius: 8, border: "none", cursor: "pointer", marginBottom: 10 }}>
-              ⬆ Import data
+              <Icon name="Upload" size={16} color="#2B2318" /> Import data
             </button>
             <input ref={fileInputRef} type="file" accept="application/json" style={{ display: "none" }}
               onChange={e => { if (e.target.files[0]) importDataFn(e.target.files[0]); e.target.value = ""; }} />
             <button onClick={resetAll} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", background: "transparent", color: "#8C4A2A", fontWeight: 700, fontSize: 12.5, padding: "10px 0", borderRadius: 8, border: "1px solid #8C4A2A", cursor: "pointer" }}>
-              ↺ Reset all data
+              <Icon name="RotateCcw" size={14} color="#8C4A2A" /> Reset all data
             </button>
           </div>
         )}
