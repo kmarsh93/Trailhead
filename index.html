@@ -1,0 +1,1475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Trailhead</title>
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#1F2E22" />
+<link rel="apple-touch-icon" href="icon-192.png" />
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Nunito+Sans:wght@400;700&display=swap" rel="stylesheet" />
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #1F2E22; font-family: 'Nunito Sans', sans-serif; -webkit-tap-highlight-color: transparent; }
+  input, select { font-family: 'Nunito Sans', sans-serif; }
+  ::-webkit-scrollbar { display: none; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useCallback, useMemo, useRef } = React;
+
+const START_DATE = new Date("2026-07-27");
+const END_DATE = new Date("2027-05-08");
+const PHASES = [
+  { name: "Phase 1", weeks: 17, color: "#C1622B" },
+  { name: "Phase 2", weeks: 16, color: "#7A8F5C" },
+  { name: "Phase 3", weeks: 7, color: "#8C4A2A" },
+];
+const BASELINE = { "Bench Press": 62.5, "Pull-Downs": 54.5, "Leg Press": 75, "Shoulder Press (DB)": 45, "Leg Curl": 29, "Low Rows": 42.5, "DB Bench Press": 52, "RDL": 32, "Lateral Raises": 5.7, "Preacher Curl (machine)": 25.5, "Incline Press": 24, "Cable Row": 52, "Calf Raises": 55, "Triceps Pushdown": 16, "Hammer Curl (machine)": 23, "Dips (assisted)": 23 };
+const START_WEIGHTS = { "Bench Press": 50, "Pull-Downs": 42.5, "Leg Press": 60, "Shoulder Press (DB)": 35, "Leg Curl": 22.5, "Low Rows": 35, "DB Bench Press": 40, "RDL": 25, "Lateral Raises": 4.5, "Preacher Curl (machine)": 20, "Incline Press": 20, "Cable Row": 40, "Calf Raises": 45, "Triceps Pushdown": 12.5, "Hammer Curl (machine)": 17, "Dips (assisted)": 29 };
+
+const PHASE_SESSIONS = [
+  { label: "3x/week full body — A / B / C rotation", framing: "Chase progress: add weight or reps once you hit the top of the rep range with good form.", deload: "Deload every 5th week — same exercises, ~50% less volume.",
+    sessions: {
+      "Session A": [["Bench Press", "3 x 6-8"], ["Pull-Downs", "3 x 8-10"], ["Leg Press", "3 x 10-12"], ["Shoulder Press (DB)", "2 x 8-10"], ["Leg Curl", "2 x 10-12"], ["Plank", "2"]],
+      "Session B": [["Low Rows", "3 x 6-8"], ["DB Bench Press", "3 x 8-10"], ["RDL", "3 x 10-12"], ["Lateral Raises", "2 x 12-15"], ["Preacher Curl (machine)", "2 x 12-15"], ["Bicycle Crunch", "2"]],
+      "Session C": [["Incline Press", "3 x 8-10"], ["Cable Row", "3 x 8-10"], ["Leg Press", "3 x 10-12"], ["Calf Raises", "2 x 12-15"], ["Triceps Pushdown", "2 x 10-12"], ["Plank", "2"]],
+    }},
+  { label: "4x/week Upper / Lower split", framing: "Chase progress: this is the main muscle-building block — push loads and volume.", deload: "Deload every 5th week — same exercises, ~50% less volume.",
+    sessions: {
+      "Upper A": [["Bench Press", "3 x 6-8"], ["Pull-Ups / Pull-Downs", "3 x 6-8"], ["Incline DB Press", "3 x 8-10"], ["Cable Row", "3 x 8-10"], ["Lateral Raises", "2 x 12-15"], ["Triceps Pushdown", "2 x 10-12"]],
+      "Lower A": [["Leg Press", "4 x 8-10"], ["RDL", "3 x 8-10"], ["Leg Curl", "3 x 10-12"], ["Calf Raises", "3 x 10-15"], ["Plank", "2"]],
+      "Upper B": [["Shoulder Press", "3 x 6-8"], ["Low Rows", "3 x 8-10"], ["DB Bench Press", "3 x 8-10"], ["Chest-Supported Row", "3 x 10-12"], ["Hammer Curl (machine)", "2 x 10-12"], ["Dips (assisted)", "2 x 10-12"]],
+      "Lower B": [["Leg Press", "4 x 8-10"], ["Bulgarian Split Squat*", "3 x 10-12"], ["Leg Curl", "3 x 10-12"], ["Calf Raises", "3 x 10-15"], ["Bicycle Crunch", "2"]],
+    }},
+  { label: "3x/week full body — A / B / C (maintenance)", framing: "Hold, don't chase: match or hold Phase 2 end-weights. A flat or slightly-down week is expected, not a failure.", deload: "One deload around week 4 of this phase.",
+    sessions: {
+      "Session A": [["Bench Press", "3 x 6-8"], ["Pull-Downs", "3 x 8-10"], ["Leg Press", "3 x 10-12"], ["Shoulder Press (DB)", "2 x 8-10"], ["Leg Curl", "2 x 10-12"], ["Plank", "2"]],
+      "Session B": [["Low Rows", "3 x 6-8"], ["DB Bench Press", "3 x 8-10"], ["RDL", "3 x 10-12"], ["Lateral Raises", "2 x 12-15"], ["Preacher Curl (machine)", "2 x 12-15"], ["Bicycle Crunch", "2"]],
+      "Session C": [["Incline Press", "3 x 8-10"], ["Cable Row", "3 x 8-10"], ["Leg Press", "3 x 10-12"], ["Calf Raises", "2 x 12-15"], ["Triceps Pushdown", "2 x 10-12"], ["Plank", "2"]],
+    }},
+];
+const REVERSE_PROGRESS = ["Dips (assisted)"];
+const STORAGE_KEY = "recomp-tracker-data";
+
+const DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+const TAG_COLOR = { strength: "#C1622B", run: "#7A8F5C", ankle: "#8C4A2A", rest: "#8FA38C" };
+
+function weekTemplate(phaseIdx, weekInPhase) {
+  const sessionNames = Object.keys(PHASE_SESSIONS[phaseIdx].sessions);
+  const rot = ((weekInPhase - 1) % sessionNames.length + sessionNames.length) % sessionNames.length;
+  const rotSession = (offset) => sessionNames[(rot + offset) % sessionNames.length];
+  if (phaseIdx === 1) {
+    return {
+      Monday: { activity: "Upper A", tag: "strength" }, Tuesday: { activity: "Lower A", tag: "strength" },
+      Wednesday: { activity: "Upper B", tag: "strength" }, Thursday: { activity: "Rest / flexibility", tag: "rest" },
+      Friday: { activity: "Lower B", tag: "strength" }, Saturday: { activity: "Easy maintenance run + flexibility", tag: "run" },
+      Sunday: { activity: "Rest", tag: "rest" },
+    };
+  }
+  const runningStarted = phaseIdx === 2 || weekInPhase >= 5;
+  if (!runningStarted) {
+    return {
+      Monday: { activity: `Strength — ${rotSession(0)}`, tag: "strength" }, Tuesday: { activity: "Rest", tag: "rest" },
+      Wednesday: { activity: `Strength — ${rotSession(1)} + Ankle`, tag: "strength" }, Thursday: { activity: "Rest", tag: "rest" },
+      Friday: { activity: `Strength — ${rotSession(2)}`, tag: "strength" }, Saturday: { activity: "Walk + Ankle work", tag: "ankle" },
+      Sunday: { activity: "Rest", tag: "rest" },
+    };
+  }
+  return {
+    Monday: { activity: `Strength — ${rotSession(0)} + flexibility`, tag: "strength" }, Tuesday: { activity: "Run / intervals", tag: "run" },
+    Wednesday: { activity: `Strength — ${rotSession(1)} + Ankle + flexibility`, tag: "strength" }, Thursday: { activity: "Rest / flexibility", tag: "rest" },
+    Friday: { activity: `Strength — ${rotSession(2)} + flexibility`, tag: "strength" }, Saturday: { activity: "Run / intervals + Ankle", tag: "run" },
+    Sunday: { activity: "Rest / buffer", tag: "rest" },
+  };
+}
+
+const ANKLE_EXERCISES = {
+  1: [
+    { name: "Single Leg Balance", scheme: "3 x 30s each leg", instructions: "Stand on one leg, knee soft, arms relaxed. Hold without putting the other foot down. Use a wall or chair fingertip-touch only if needed." },
+    { name: "Resisted Ankle Bands", scheme: "2 x 15 per direction", instructions: "Loop a light resistance band around your forefoot, anchor the other end. Move your foot against the band in all 4 directions — up, down, in, out — slow and controlled." },
+    { name: "Heel Raises", scheme: "3 x 15", instructions: "Stand feet hip-width apart. Rise onto your toes slowly, pause at the top, lower with control over 2-3 seconds. Hold a support lightly if balance is an issue." },
+    { name: "Toe Walks / Heel Walks", scheme: "2 x 10m", instructions: "Walk 10m up on your toes, then 10m back on your heels only. Keep steps small and controlled rather than fast." },
+    { name: "Mini Band Monster Walks", scheme: "2 x 10 steps each way", instructions: "Place a mini band around your ankles. Take controlled lateral steps keeping tension in the band throughout — don't let your feet drift together." },
+  ],
+  2: [
+    { name: "Single Leg Balance (Eyes Closed)", scheme: "3 x 20s each leg", instructions: "Same as the Stage 1 balance hold, but close your eyes once stable — this removes visual feedback and forces the ankle stabilizers to work harder." },
+    { name: "BOSU Ball Balance", scheme: "3 x 30s", instructions: "Stand on one leg on the dome side of a BOSU ball. Keep the knee soft and find a stable hold — small wobbles are fine, stepping off resets the set." },
+    { name: "Step Downs", scheme: "3 x 8 each leg", instructions: "Stand on a low step or box. Slowly lower the opposite heel toward the floor without letting it touch, then return to standing. Control the descent — don't drop." },
+    { name: "Skater Hops", scheme: "2 x 10", instructions: "Hop laterally from one leg to the other in a skating motion. Stick and hold each landing for a beat before the next hop." },
+    { name: "Cone Drills", scheme: "3 rounds", instructions: "Set up small cones or markers. Perform lateral shuffles or a figure-8 pattern around them at a controlled, athletic pace." },
+  ],
+};
+const FLEXIBILITY_ROUTINE = [
+  { name: "Hamstring Stretch", scheme: "2 x 30s each leg", instructions: "Seated or standing, extend one leg and hinge forward from the hips (not the lower back) until you feel a stretch behind the thigh." },
+  { name: "Quad Stretch", scheme: "2 x 30s each leg", instructions: "Standing, pull one heel toward your glutes, keeping knees together and hips pushed slightly forward. Hold a wall for balance if needed." },
+  { name: "Hip Flexor Stretch", scheme: "2 x 30s each side", instructions: "Kneeling lunge position, back knee down. Push hips forward gently until you feel a stretch at the front of the back hip — keep torso upright." },
+  { name: "Chest / Shoulder Stretch", scheme: "2 x 30s each side", instructions: "Place forearm on a doorframe or wall at shoulder height, rotate your body away until you feel a stretch across the chest and front shoulder." },
+  { name: "Lat Stretch", scheme: "2 x 30s each side", instructions: "Reach one arm overhead and lean sideways from the hips, reaching past your ear. Feel the stretch down the side of your torso." },
+  { name: "Calf Stretch", scheme: "2 x 30s each leg", instructions: "Hands on a wall, step one foot back, heel flat on the floor, front knee bent. Lean into the wall until you feel a stretch in the back calf." },
+  { name: "Lower Back / Child's Pose", scheme: "1 x 45s", instructions: "Kneel and sit back onto your heels, reaching arms forward on the floor, letting your lower back and hips relax and lengthen." },
+  { name: "Neck / Upper Trap Stretch", scheme: "2 x 20s each side", instructions: "Gently tilt your ear toward one shoulder until you feel a stretch along the opposite side of your neck. No pulling — let gravity do the work." },
+];
+const PHASE_NUTRITION = [
+  { kcal: 2450, protein: 170, fat: 73, carbs: 280 },
+  { kcal: 3050, protein: 170, fat: 85, carbs: 400 },
+  { kcal: 2450, protein: 170, fat: 73, carbs: 280 },
+];
+const PHASE_TARGET = [
+  { weight: 74.75, bf: 13.5, label: "End of Phase 1 target" },
+  { weight: 79.4, bf: 16.5, label: "End of Phase 2 target" },
+  { weight: 77.5, bf: 15, label: "End of Phase 3 — final goal" },
+];
+const PHASE_START_WEIGHT = [81, 74.75, 79.4];
+
+const GOLD_STATUS = "#D4AF37";
+const GREEN_STATUS = "#7A8F5C";
+const ORANGE_STATUS = "#C1622B";
+const RUST_STATUS = "#8C4A2A";
+const GREY_STATUS = "#D8D2C2";
+
+const KCAL_RANGES = [
+  { floor: 2200, optimalMin: 2400, optimalMax: 2500, softOverMax: 2700, mode: "deficit" },
+  { floor: 2800, optimalMin: 3000, optimalMax: 3100, softOverMax: 3400, mode: "surplus" },
+  { floor: 2200, optimalMin: 2400, optimalMax: 2500, softOverMax: 2700, mode: "deficit" },
+];
+function kcalStatusColor(value, phaseIdx) {
+  const r = KCAL_RANGES[phaseIdx];
+  if (value < r.floor) return RUST_STATUS;
+  if (value >= r.optimalMin && value <= r.optimalMax) return GOLD_STATUS;
+  if (value <= r.softOverMax) return GREEN_STATUS;
+  return ORANGE_STATUS;
+}
+function kcalStatusLabel(value, phaseIdx) {
+  const r = KCAL_RANGES[phaseIdx];
+  if (value < r.floor) return r.mode === "surplus" ? "Below surplus floor — too little to support growth" : "Below calorie floor — under-eating risk";
+  if (value >= r.optimalMin && value <= r.optimalMax) return r.mode === "surplus" ? "Ideal surplus" : "Ideal deficit";
+  if (value <= r.softOverMax) return r.mode === "surplus" ? "Meeting surplus floor" : "Meeting deficit floor";
+  return r.mode === "surplus" ? "More surplus than needed" : "Ate above your deficit target";
+}
+function proteinBands(bodyweightKg) {
+  const floor = Math.round((bodyweightKg * 1.6) / 5) * 5;
+  const optimal = Math.round((bodyweightKg * 2.0) / 5) * 5;
+  return { floor, optimal };
+}
+function proteinStatusColor(value, floor, optimal) {
+  if (value < floor) return RUST_STATUS;
+  if (value >= optimal) return GOLD_STATUS;
+  return GREEN_STATUS;
+}
+function proteinStatusLabel(value, floor, optimal) {
+  if (value < floor) return "Below protein floor";
+  if (value >= optimal) return "Hit protein optimal";
+  return "Meeting protein floor";
+}
+function isDeloadWeek(phaseIdx, weekInPhase) {
+  if (phaseIdx === 2) return weekInPhase === 4;
+  return weekInPhase > 0 && weekInPhase % 5 === 0;
+}
+function roundHalf(x) { return Math.round(x / 2.5) * 2.5; }
+function deloadWeight(w) {
+  const n = parseFloat(w);
+  if (isNaN(n)) return w;
+  return roundHalf(n * 0.9);
+}
+function deloadScheme(scheme) {
+  const m = scheme.match(/^(\d+)\s*x\s*(.+)$/);
+  if (!m) return scheme;
+  const sets = parseInt(m[1], 10);
+  const half = Math.max(1, Math.ceil(sets / 2));
+  return `~${half} x ${m[2]} (deload)`;
+}
+
+const PROGRESSION_INCREMENT = {
+  "Bench Press": 2.5, "Pull-Downs": 2.5, "Leg Press": 5, "Shoulder Press (DB)": 2, "Leg Curl": 2,
+  "Low Rows": 2.5, "DB Bench Press": 2, "RDL": 2.5, "Lateral Raises": 1, "Preacher Curl (machine)": 2,
+  "Incline Press": 2.5, "Cable Row": 2.5, "Calf Raises": 2.5, "Triceps Pushdown": 1, "Hammer Curl (machine)": 1,
+  "Dips (assisted)": 2.5, "Pull-Ups / Pull-Downs": 2.5, "Incline DB Press": 2, "Chest-Supported Row": 2.5,
+  "Shoulder Press": 2.5, "Bulgarian Split Squat*": 2.5,
+};
+function parseScheme(scheme) {
+  if (!scheme) return null;
+  const m = scheme.match(/^(\d+)\s*x\s*(\d+)-(\d+)/);
+  if (!m) return null;
+  return { sets: parseInt(m[1], 10), repMin: parseInt(m[2], 10), repMax: parseInt(m[3], 10) };
+}
+function parseReps(repsStr) {
+  if (!repsStr) return [];
+  return repsStr.split(",").map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n));
+}
+function repSuccessLevel(repsStr, scheme) {
+  const range = parseScheme(scheme);
+  if (!range) return null;
+  const reps = parseReps(repsStr);
+  if (reps.length < range.sets) return null;
+  const relevant = reps.slice(0, range.sets);
+  if (relevant.every(r => r >= range.repMax)) return "gold";
+  if (relevant.every(r => r >= range.repMin)) return "green";
+  return "rust";
+}
+function getScheme(phaseIdx, sessionName, exerciseName) {
+  const phase = PHASE_SESSIONS[phaseIdx];
+  if (!phase) return null;
+  const list = phase.sessions[sessionName];
+  if (!list) return null;
+  const found = list.find(([n]) => n === exerciseName);
+  return found ? found[1] : null;
+}
+function weekInPhaseForWeekIndex(wi) {
+  let cursor = 0;
+  for (let i = 0; i < PHASES.length; i++) { if (wi < cursor + PHASES[i].weeks) return wi - cursor + 1; cursor += PHASES[i].weeks; }
+  return wi - cursor + 1;
+}
+function isDeloadForDate(dateStr) {
+  const wi = weekIndexOf(dateStr);
+  const ph = phaseForWeekIndex(wi);
+  const wip = weekInPhaseForWeekIndex(wi);
+  return isDeloadWeek(ph, wip);
+}
+function suggestedNextWeight(exerciseName, lastWeight, level) {
+  if (level !== "gold" || lastWeight === "" || lastWeight == null) return lastWeight;
+  const inc = PROGRESSION_INCREMENT[exerciseName] ?? 2.5;
+  const n = parseFloat(lastWeight);
+  if (isNaN(n)) return lastWeight;
+  const next = REVERSE_PROGRESS.includes(exerciseName) ? n - inc : n + inc;
+  return Math.round(next * 2) / 2;
+}
+function bestPriorEntry(sessionLogs, exerciseName) {
+  for (const s of sessionLogs) {
+    if (isDeloadForDate(s.date)) continue;
+    const found = s.exercises.find(e => e.name === exerciseName);
+    if (found && found.weight !== "") {
+      const scheme = getScheme(s.phaseIdx, s.sessionName, exerciseName);
+      const level = scheme ? repSuccessLevel(found.reps, scheme) : null;
+      return { weight: found.weight, level };
+    }
+  }
+  return { weight: START_WEIGHTS[exerciseName] || "", level: null };
+}
+function plateauCheck(sessionLogs, exerciseName) {
+  const relevant = [];
+  for (const s of sessionLogs) {
+    if (isDeloadForDate(s.date)) continue;
+    const found = s.exercises.find(e => e.name === exerciseName);
+    if (!found || found.weight === "") continue;
+    const scheme = getScheme(s.phaseIdx, s.sessionName, exerciseName);
+    const level = scheme ? repSuccessLevel(found.reps, scheme) : null;
+    relevant.push({ weight: found.weight, level, date: s.date });
+    if (relevant.length === 3) break;
+  }
+  if (relevant.length < 3) return null;
+  const sameWeight = relevant.every(r => r.weight === relevant[0].weight);
+  const noneGold = relevant.every(r => r.level !== "gold");
+  return sameWeight && noneGold ? { weight: relevant[0].weight, count: relevant.length } : null;
+}
+
+function weeksBetween(a, b) { return Math.floor((b - a) / 6048e5); }
+function weekIndexOf(dateStr) { return weeksBetween(START_DATE, new Date(dateStr)); }
+function twoWeekCutoffStr() {
+  const d = new Date();
+  d.setDate(d.getDate() - 14);
+  return d.toISOString().slice(0, 10);
+}
+function formatHeaderDate() {
+  const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  const d = new Date();
+  return days[d.getDay()] + ", " + d.getDate() + " " + months[d.getMonth()];
+}
+function phaseForWeekIndex(wi) {
+  let cursor = 0;
+  for (let i = 0; i < PHASES.length; i++) { if (wi < cursor + PHASES[i].weeks) return i; cursor += PHASES[i].weeks; }
+  return PHASES.length - 1;
+}
+function currentWeekInfo() {
+  const now = new Date();
+  const totalWeeks = weeksBetween(START_DATE, END_DATE);
+  const elapsedRaw = weeksBetween(START_DATE, now);
+  const elapsed = Math.max(0, Math.min(totalWeeks, elapsedRaw));
+  let cursor = 0, phaseIdx = 0, weekInPhase = elapsed;
+  for (let i = 0; i < PHASES.length; i++) {
+    if (elapsed < cursor + PHASES[i].weeks) { phaseIdx = i; weekInPhase = elapsed - cursor + 1; break; }
+    cursor += PHASES[i].weeks; phaseIdx = i; weekInPhase = elapsed - cursor + 1;
+  }
+  return { totalWeeks, elapsed, elapsedRaw, phaseIdx, weekInPhase: Math.max(1, weekInPhase) };
+}
+
+function getWeekDates(weekIndex) {
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(START_DATE);
+    d.setDate(d.getDate() + weekIndex * 7 + i);
+    return d.toISOString().slice(0, 10);
+  });
+}
+function runTargetForWeek(phaseIdx, weekInPhase) {
+  if (phaseIdx === 1) return 1;
+  if (phaseIdx === 0 && weekInPhase < 5) return 0;
+  return 2;
+}
+function domainDueOnDay(domain, info) {
+  if (domain === "weights") return info.tag === "strength";
+  if (domain === "run") return info.tag === "run";
+  if (domain === "mobility") return info.tag === "ankle" || info.activity.includes("Ankle") || info.activity.toLowerCase().includes("flexibility") || info.tag === "strength";
+  if (domain === "food") return true;
+  return false;
+}
+function domainLoggedOnDate(domain, dateStr, data) {
+  if (domain === "weights") return data.sessions.some(s => s.date === dateStr);
+  if (domain === "run") return data.runs.some(r => r.date === dateStr);
+  if (domain === "mobility") return data.ankle.sessions.some(s => s.date === dateStr) || data.flexibility.some(s => s.date === dateStr);
+  if (domain === "food") return data.nutrition.some(n => n.date === dateStr) || data.nutritionComplete.includes(dateStr);
+  return false;
+}
+function mobilityActionsForDay(info) {
+  let n = 0;
+  if (info.tag === "strength") {
+    n += 1;
+    if (info.activity.includes("Ankle")) n += 1;
+  } else if (info.tag === "run") {
+    if (info.activity.includes("Ankle")) n += 1;
+  } else if (info.tag === "ankle") {
+    n += 1;
+  } else if (info.activity.toLowerCase().includes("flexibility")) {
+    n += 1;
+  }
+  return n;
+}
+function mobilityTargetForWeek(phaseIdx, weekInPhase) {
+  const template = weekTemplate(phaseIdx, weekInPhase);
+  return DAY_NAMES.reduce((sum, d) => sum + mobilityActionsForDay(template[d]), 0);
+}
+function nextUpFromToday(phaseIdx, weekInPhase) {
+  const template = weekTemplate(phaseIdx, weekInPhase);
+  const todayIdx = (new Date().getDay() + 6) % 7;
+  for (let offset = 1; offset <= 6 - todayIdx; offset++) {
+    const idx = todayIdx + offset;
+    const day = DAY_NAMES[idx];
+    const info = template[day];
+    if (info.tag !== "rest") return { day, activity: info.activity };
+  }
+  return null;
+}
+function buildTodayChecklist(phaseIdx, weekInPhase, data, todayStr) {
+  const template = weekTemplate(phaseIdx, weekInPhase);
+  const todayName = DAY_NAMES[(new Date().getDay() + 6) % 7];
+  const info = template[todayName];
+  const items = [];
+  const sessionDone = data.sessions.some(s => s.date === todayStr);
+  const ankleDone = data.ankle.sessions.some(s => s.date === todayStr);
+  const flexDone = data.flexibility.some(s => s.date === todayStr);
+  const runDone = data.runs.some(r => r.date === todayStr);
+  if (info.tag === "strength") {
+    items.push({ label: "Weight training", done: sessionDone, tab: "sessions" });
+    items.push({ label: "Flexibility", done: flexDone, tab: "mobility" });
+    if (info.activity.includes("Ankle")) items.push({ label: "Ankle work", done: ankleDone, tab: "mobility" });
+  } else if (info.tag === "run") {
+    items.push({ label: "Run", done: runDone, tab: "run" });
+    if (info.activity.includes("Ankle")) items.push({ label: "Ankle work", done: ankleDone, tab: "mobility" });
+  } else if (info.tag === "ankle") {
+    items.push({ label: "Ankle work", done: ankleDone, tab: "mobility" });
+  } else if (info.activity.toLowerCase().includes("flexibility")) {
+    items.push({ label: "Flexibility", done: flexDone, tab: "mobility" });
+  }
+  items.push({ label: "Log today's nutrition", done: data.nutritionComplete.includes(todayStr), tab: "food" });
+  return items;
+}
+
+const card = { background: "#FBF4E6", color: "#2B2318", borderRadius: "16px" };
+const ink = "#F3ECD9", bg = "#1F2E22", muted = "#8FA38C", gold = "#C1622B";
+
+const SECTIONS = [
+  { id: "schedule", label: "Week", icon: "📅" },
+  { id: "sessions", label: "Weights", icon: "🏋️" },
+  { id: "run", label: "Run", icon: "🏃" },
+  { id: "mobility", label: "Mobility", icon: "🧘" },
+  { id: "food", label: "Nutrition", icon: "🍽️" },
+  { id: "body", label: "Vitals", icon: "⚖️" },
+];
+
+function loadData() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      const migratedSleep = parsed.sleep || (parsed.stats || [])
+        .filter(s => s.sleepHours || s.sleepQuality)
+        .map(s => ({ date: s.date, hours: s.sleepHours || "", quality: s.sleepQuality || "" }));
+      return { stats: [], sessions: [], runs: [], ankle: { stage: 1, sessions: [] }, flexibility: [], nutrition: [], nutritionComplete: [], sleep: [], ...parsed, sleep: migratedSleep };
+    }
+  } catch (e) {}
+  return { stats: [], sessions: [], runs: [], ankle: { stage: 1, sessions: [] }, flexibility: [], nutrition: [], nutritionComplete: [], sleep: [] };
+}
+function saveData(data) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch (e) { console.error("Save failed", e); }
+}
+
+function Timeline({ data, onPhaseClick }) {
+  const { totalWeeks, elapsed, phaseIdx } = currentWeekInfo();
+  const pct = Math.min(100, (elapsed / totalWeeks) * 100);
+  const target = PHASE_TARGET[phaseIdx];
+  const startWeight = PHASE_START_WEIGHT[phaseIdx];
+  const latest = data.stats[0] ? parseFloat(data.stats[0].weight) : null;
+  let goalPct = null, remaining = null;
+  if (latest != null) {
+    if (phaseIdx === 1) {
+      goalPct = ((latest - startWeight) / (target.weight - startWeight)) * 100;
+      remaining = target.weight - latest;
+    } else {
+      goalPct = ((startWeight - latest) / (startWeight - target.weight)) * 100;
+      remaining = latest - target.weight;
+    }
+    goalPct = Math.max(0, Math.min(100, goalPct));
+  }
+  return (
+    <div style={{ padding: "20px 18px 14px" }}>
+      <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, letterSpacing: "0.12em", color: muted, textTransform: "uppercase", marginBottom: 6 }}>
+        Week {elapsed + 1} of {totalWeeks} · {PHASES[phaseIdx].name}
+      </div>
+      <div style={{ position: "relative", height: 6, background: "#2E3F31", borderRadius: 10, marginBottom: 8 }}>
+        <div style={{ position: "absolute", left: 0, top: 0, height: "100%", width: pct + "%", background: gold, borderRadius: 10 }} />
+        {[17, 33].map((w, i) => <div key={i} style={{ position: "absolute", left: (w/totalWeeks*100) + "%", top: -3, width: 2, height: 12, background: bg }} />)}
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", fontFamily: "'Nunito Sans', sans-serif", fontSize: 11, color: muted, marginBottom: 3 }}>
+        {PHASES.map((p, i) => (
+          <button key={i} onClick={() => onPhaseClick && onPhaseClick(i)}
+            style={{ background: "none", border: "none", padding: 0, cursor: "pointer", color: phaseIdx === i ? gold : muted, fontWeight: phaseIdx === i ? 700 : 400, fontFamily: "'Nunito Sans', sans-serif", fontSize: 11, textDecoration: "underline", textDecorationStyle: "dotted", textDecorationColor: phaseIdx === i ? gold : "#5A6B54", textUnderlineOffset: "3px" }}>
+            {p.name}
+          </button>
+        ))}
+      </div>
+      <div style={{ fontSize: 9.5, color: "#5A6B54", fontStyle: "italic", marginBottom: latest != null ? 10 : 0 }}>Tap a phase for details</div>
+      {latest != null && (
+        <div>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10.5, color: muted, marginBottom: 3 }}>
+            <span>{latest}kg → {target.weight}kg</span>
+            <span>{remaining > 0.05 ? remaining.toFixed(1) + "kg to go" : "Target reached"}</span>
+          </div>
+          <div style={{ position: "relative", height: 5, background: "#2E3F31", borderRadius: 8 }}>
+            <div style={{ position: "absolute", left: 0, top: 0, height: "100%", width: goalPct + "%", background: "#7A8F5C", borderRadius: 8 }} />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function BackHeader({ label, onBack }) {
+  return (
+    <button onClick={onBack} style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", cursor: "pointer", color: ink, marginBottom: 14, padding: 0 }}>
+      <span style={{ fontSize: 18 }}>←</span>
+      <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 18, fontWeight: 700 }}>{label}</span>
+    </button>
+  );
+}
+function IconTile({ icon, label, onClick, badge }) {
+  return (
+    <button onClick={onClick} style={{ ...card, border: "none", cursor: "pointer", padding: "16px 10px", display: "flex", flexDirection: "column", alignItems: "center", gap: 8, position: "relative" }}>
+      {badge && <div style={{ position: "absolute", top: 8, right: 8, background: gold, color: "#201B10", fontSize: 9, fontWeight: 700, borderRadius: 10, padding: "1px 6px" }}>{badge}</div>}
+      <span style={{ fontSize: 24 }}>{icon}</span>
+      <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 14, fontWeight: 700 }}>{label}</span>
+    </button>
+  );
+}
+function scorecardColor(count, target) {
+  if (target === 0) return "#8FA38C";
+  const ratio = count / target;
+  if (ratio >= 1) return "#7A8F5C";
+  if (ratio >= 0.5) return "#C1622B";
+  return "#8C4A2A";
+}
+function ScorecardTile({ label, count, target, extra, onClick }) {
+  const color = scorecardColor(count, target);
+  return (
+    <button onClick={onClick} style={{ ...card, border: "none", borderLeft: "4px solid " + color, cursor: "pointer", padding: "10px 12px", textAlign: "left" }}>
+      <div style={{ fontSize: 10, textTransform: "uppercase", color: "#6B6F63" }}>{label}</div>
+      {target === 0 ? (
+        <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 16, fontWeight: 700 }}>Not active</div>
+      ) : (
+        <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 20, fontWeight: 700 }}>{count}/{target}</div>
+      )}
+      {extra && <div style={{ fontSize: 9.5, color: "#8A7B5C" }}>{extra}</div>}
+    </button>
+  );
+}
+function ChecklistRow({ label, done, onClick, isLast }) {
+  return (
+    <button onClick={onClick} style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 0", width: "100%", background: "none", border: "none", borderBottom: isLast ? "none" : "1px solid #E2DCCB", cursor: "pointer", textAlign: "left" }}>
+      <span style={{ width: 16, height: 16, borderRadius: 4, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center",
+        background: done ? "#7A8F5C" : "transparent", border: done ? "none" : "1.5px solid #C1622B", color: "#FBF4E6", fontSize: 10 }}>
+        {done ? "✓" : ""}
+      </span>
+      <span style={{ fontSize: 13, color: done ? "#8A7B5C" : "#2B2318", textDecoration: done ? "line-through" : "none" }}>{label}</span>
+    </button>
+  );
+}
+function SubTab({ label, active, onClick }) {
+  return (
+    <button onClick={onClick} style={{ flex: 1, padding: "7px 0", borderRadius: 6, border: "none", cursor: "pointer",
+      background: active ? gold : "#E4DFD1", color: active ? "#201B10" : "#6B6F63", fontWeight: 700, fontSize: 11.5 }}>
+      {label}
+    </button>
+  );
+}
+
+function Entry({ children, onDelete, onEdit }) {
+  return (
+    <div style={{ ...card, padding: "12px 14px", marginBottom: 10, position: "relative" }}>
+      {(onDelete || onEdit) && (
+        <div style={{ position: "absolute", top: 8, right: 8, display: "flex", gap: 6 }}>
+          {onEdit && <button onClick={onEdit} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "#6B6F63" }}>✎</button>}
+          {onDelete && <button onClick={onDelete} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 15, color: "#6B6F63", lineHeight: 0.7 }}>×</button>}
+        </div>
+      )}
+      {children}
+    </div>
+  );
+}
+function StatBadge({ label, value }) {
+  return (
+    <div>
+      <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 20, fontWeight: 700 }}>{value}</div>
+      <div style={{ fontSize: 10, color: "#6B6F63", textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</div>
+    </div>
+  );
+}
+function AddButton({ onClick, label }) {
+  return (
+    <button onClick={onClick} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", background: gold, color: "#201B10", fontWeight: 700, fontSize: 13, padding: "11px 0", borderRadius: 8, border: "none", cursor: "pointer", marginBottom: 14 }}>
+      + {label}
+    </button>
+  );
+}
+function EmptyState({ text }) { return <div style={{ color: muted, fontSize: 13, padding: "18px 4px", fontStyle: "italic" }}>{text}</div>; }
+function ShowMoreButton({ remaining, onClick }) {
+  if (remaining <= 0) return null;
+  return (
+    <button onClick={onClick} style={{ width: "100%", padding: "9px 0", borderRadius: 8, border: "1px solid #3E4139", background: "none", color: muted, fontSize: 12.5, fontWeight: 600, cursor: "pointer", marginBottom: 10 }}>
+      Show {Math.min(10, remaining)} more ({remaining} older)
+    </button>
+  );
+}
+
+function MiniChart({ data, baseline }) {
+  if (data.length < 2) return <EmptyState text="Log at least twice to see a trend." />;
+  const w = 300, h = 120, pad = 24;
+  const values = data.map(d => d.value);
+  const min = Math.min(...values, baseline != null ? baseline : Infinity) - 2;
+  const max = Math.max(...values, baseline != null ? baseline : -Infinity) + 2;
+  const x = i => pad + (i / (data.length - 1)) * (w - pad * 2);
+  const y = v => h - pad - ((v - min) / (max - min || 1)) * (h - pad * 2);
+  const points = data.map((d, i) => x(i) + "," + y(d.value)).join(" ");
+  return (
+    <svg width="100%" viewBox={"0 0 " + w + " " + h}>
+      {baseline != null && <line x1={pad} x2={w-pad} y1={y(baseline)} y2={y(baseline)} stroke="#8C4A2A" strokeDasharray="4 4" strokeWidth="1" />}
+      <polyline points={points} fill="none" stroke={gold} strokeWidth="2" />
+      {data.map((d, i) => <circle key={i} cx={x(i)} cy={y(d.value)} r="3" fill={gold} />)}
+      {data.map((d, i) => (i === 0 || i === data.length - 1) &&
+        <text key={i} x={x(i)} y={h - 6} fontSize="9" fill={muted} textAnchor={i === 0 ? "start" : "end"}>{d.date}</text>)}
+    </svg>
+  );
+}
+function ExerciseMiniChart({ data, baseline }) {
+  if (data.length < 2) return <EmptyState text="Log this exercise at least twice to see a trend." />;
+  const w = 300, h = 120, pad = 24;
+  const values = data.map(d => d.weight);
+  const min = Math.min(...values, baseline || Infinity) - 2;
+  const max = Math.max(...values, baseline || -Infinity) + 2;
+  const x = i => pad + (i / (data.length - 1)) * (w - pad * 2);
+  const y = v => h - pad - ((v - min) / (max - min || 1)) * (h - pad * 2);
+  const points = data.map((d, i) => x(i) + "," + y(d.weight)).join(" ");
+  return (
+    <svg width="100%" viewBox={"0 0 " + w + " " + h}>
+      {baseline && <line x1={pad} x2={w-pad} y1={y(baseline)} y2={y(baseline)} stroke="#8C4A2A" strokeDasharray="4 4" strokeWidth="1" />}
+      <polyline points={points} fill="none" stroke={gold} strokeWidth="2" />
+      {data.map((d, i) => <circle key={i} cx={x(i)} cy={y(d.weight)} r="3" fill={gold} />)}
+      {data.map((d, i) => (i === 0 || i === data.length - 1) &&
+        <text key={i} x={x(i)} y={h - 6} fontSize="9" fill={muted} textAnchor={i === 0 ? "start" : "end"}>{d.date}</text>)}
+    </svg>
+  );
+}
+
+function bestPriorWeight(sessionLogs, exerciseName) {
+  for (const s of sessionLogs) {
+    const found = s.exercises.find(e => e.name === exerciseName);
+    if (found && found.weight !== "") return found.weight;
+  }
+  return START_WEIGHTS[exerciseName] || "";
+}
+
+function FormShell({ children }) { return <div style={{ ...card, padding: 14, marginBottom: 14 }}>{children}</div>; }
+function FieldRow({ children }) { return <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>{children}</div>; }
+const inputStyle = { flex: 1, minWidth: 0, padding: "8px 10px", borderRadius: 6, border: "1px solid #D8D2C2", fontSize: 13, background: "#FCFAF4" };
+const submitStyle = { background: "#1F2E22", color: "#F3ECD9", border: "none", borderRadius: 6, padding: "9px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer" };
+
+function BodyForm({ onSubmit }) {
+  const [weight, setWeight] = useState(""), [waist, setWaist] = useState(""), [bf, setBf] = useState("");
+  return (
+    <FormShell>
+      <FieldRow>
+        <input style={inputStyle} placeholder="Weight (kg)" value={weight} onChange={e => setWeight(e.target.value)} />
+        <input style={inputStyle} placeholder="Waist (cm)" value={waist} onChange={e => setWaist(e.target.value)} />
+      </FieldRow>
+      <FieldRow>
+        <input style={inputStyle} placeholder="Body fat % (optional)" value={bf} onChange={e => setBf(e.target.value)} />
+      </FieldRow>
+      <button style={submitStyle} onClick={() => weight && waist && onSubmit({ weight, waist, bf })}>Save entry</button>
+    </FormShell>
+  );
+}
+
+function SleepForm({ onSubmit }) {
+  const [hours, setHours] = useState(""), [quality, setQuality] = useState("");
+  return (
+    <FormShell>
+      <FieldRow>
+        <input style={inputStyle} placeholder="Hours slept" value={hours} onChange={e => setHours(e.target.value)} />
+      </FieldRow>
+      <div style={{ marginBottom: 8 }}>
+        <div style={{ fontSize: 11, color: "#6B6F63", marginBottom: 4 }}>Sleep quality</div>
+        <div style={{ display: "flex", gap: 4 }}>
+          {[1,2,3,4,5].map(q => (
+            <button key={q} onClick={() => setQuality(String(q))}
+              style={{ flex: 1, padding: "6px 0", borderRadius: 6, border: "none", cursor: "pointer",
+                background: quality === String(q) ? gold : "#E4DFD1", color: quality === String(q) ? "#201B10" : "#6B6F63", fontWeight: 700, fontSize: 12 }}>
+              {q}
+            </button>
+          ))}
+        </div>
+      </div>
+      <button style={submitStyle} onClick={() => hours && onSubmit({ hours, quality })}>Save entry</button>
+    </FormShell>
+  );
+}
+
+function SessionForm({ sessions, priorSessions, initial, isDeload, onSubmit }) {
+  const names = Object.keys(sessions);
+  const [sessionName, setSessionName] = useState(initial ? initial.sessionName : names[0]);
+  const [rows, setRows] = useState({});
+  useEffect(() => {
+    const exercises = sessions[sessionName] || sessions[names[0]];
+    const init = {};
+    exercises.forEach(([name]) => {
+      if (name === "Plank" || name === "Bicycle Crunch") return;
+      const existing = initial && initial.sessionName === sessionName ? initial.exercises.find(e => e.name === name) : null;
+      if (existing) { init[name] = { weight: existing.weight, reps: existing.reps, bumped: false }; }
+      else {
+        const { weight: prior, level } = bestPriorEntry(priorSessions, name);
+        if (isDeload && prior !== "") {
+          init[name] = { weight: deloadWeight(prior), reps: "", bumped: false };
+        } else if (level === "gold" && prior !== "") {
+          init[name] = { weight: suggestedNextWeight(name, prior, level), reps: "", bumped: true, priorWeight: prior };
+        } else {
+          init[name] = { weight: prior, reps: "", bumped: false };
+        }
+      }
+    });
+    setRows(init);
+  }, [sessionName]);
+  const updateRow = (name, field, value) => setRows(r => ({ ...r, [name]: { ...r[name], [field]: value, bumped: field === "weight" ? false : r[name]?.bumped } }));
+  const submit = () => {
+    const exercises = Object.entries(rows).filter(([, v]) => v.weight !== "" || v.reps !== "").map(([name, v]) => ({ name, weight: v.weight, reps: v.reps }));
+    if (exercises.length) onSubmit(sessionName, exercises);
+  };
+  return (
+    <FormShell>
+      {isDeload && <div style={{ fontSize: 11.5, color: "#8C4A2A", fontStyle: "italic", marginBottom: 10 }}>Deload week — weights pre-filled at ~90% of last logged, sets roughly halved.</div>}
+      <select style={{ ...inputStyle, marginBottom: 10, width: "100%" }} value={sessionName} onChange={e => setSessionName(e.target.value)}>
+        {names.map(n => <option key={n} value={n}>{n}</option>)}
+      </select>
+      {sessions[sessionName].filter(([n]) => n !== "Plank" && n !== "Bicycle Crunch").map(([name, scheme]) => (
+        <div key={name} style={{ marginBottom: 8 }}>
+          <div style={{ fontSize: 11.5, color: "#4A4D42", marginBottom: 3, display: "flex", justifyContent: "space-between" }}>
+            <span>{name}</span><span style={{ color: "#9A9C8E" }}>{isDeload ? deloadScheme(scheme) : scheme}</span>
+          </div>
+          <FieldRow>
+            <input style={inputStyle} placeholder="Weight (kg)" value={rows[name]?.weight ?? ""} onChange={e => updateRow(name, "weight", e.target.value)} />
+            <input style={inputStyle} placeholder="Reps e.g. 8,8,8" value={rows[name]?.reps ?? ""} onChange={e => updateRow(name, "reps", e.target.value)} />
+          </FieldRow>
+          {rows[name]?.bumped && (
+            <div style={{ fontSize: 10.5, color: "#D4AF37", marginTop: 2 }}>🥇 Hit all reps last time — bumped from {rows[name].priorWeight}kg</div>
+          )}
+        </div>
+      ))}
+      <button style={{ ...submitStyle, width: "100%", marginTop: 4 }} onClick={submit}>{initial ? "Save changes" : "Save session"}</button>
+    </FormShell>
+  );
+}
+
+function RunForm({ onSubmit }) {
+  const [distance, setDistance] = useState(""), [duration, setDuration] = useState(""), [continuous, setContinuous] = useState(false);
+  return (
+    <FormShell>
+      <FieldRow>
+        <input style={inputStyle} placeholder="Distance (km)" value={distance} onChange={e => setDistance(e.target.value)} />
+        <input style={inputStyle} placeholder="Duration (min)" value={duration} onChange={e => setDuration(e.target.value)} />
+      </FieldRow>
+      <label style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8, fontSize: 12, color: "#4A4D42" }}>
+        <input type="checkbox" checked={continuous} onChange={e => setContinuous(e.target.checked)} /> Uninterrupted run (no walk breaks)
+      </label>
+      <button style={submitStyle} onClick={() => distance && duration && onSubmit({ distance, duration, continuous })}>Save entry</button>
+    </FormShell>
+  );
+}
+
+function ExerciseChecklist({ exercises, onSubmit, submitLabel }) {
+  const [checked, setChecked] = useState({});
+  const [openInfo, setOpenInfo] = useState(null);
+  useEffect(() => { setChecked({}); setOpenInfo(null); }, [exercises]);
+  const toggle = name => setChecked(c => ({ ...c, [name]: !c[name] }));
+  const submit = () => {
+    const done = exercises.filter(ex => checked[ex.name]).map(ex => ex.name);
+    if (done.length) onSubmit(done);
+  };
+  return (
+    <FormShell>
+      {exercises.map(ex => (
+        <div key={ex.name} style={{ marginBottom: 10, paddingBottom: 10, borderBottom: "1px solid #E2DCCB" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <input type="checkbox" checked={!!checked[ex.name]} onChange={() => toggle(ex.name)} style={{ width: 16, height: 16, flexShrink: 0 }} />
+            <div style={{ flex: 1, display: "flex", justifyContent: "space-between" }}>
+              <span style={{ fontSize: 12.5, fontWeight: 600 }}>{ex.name}</span>
+              <span style={{ fontSize: 10.5, color: "#8A7B5C" }}>{ex.scheme}</span>
+            </div>
+            <button onClick={() => setOpenInfo(openInfo === ex.name ? null : ex.name)} style={{ background: "none", border: "none", cursor: "pointer", color: "#8A7B5C", fontSize: 13 }}>ⓘ</button>
+          </div>
+          {openInfo === ex.name && <div style={{ fontSize: 11.5, color: "#4A4D42", marginTop: 6, marginLeft: 24, lineHeight: 1.5, fontStyle: "italic" }}>{ex.instructions}</div>}
+        </div>
+      ))}
+      <button style={{ ...submitStyle, width: "100%" }} onClick={submit}>{submitLabel}</button>
+    </FormShell>
+  );
+}
+
+function MealForm({ onSubmit }) {
+  const [meal, setMeal] = useState(""), [kcal, setKcal] = useState(""), [protein, setProtein] = useState(""), [fat, setFat] = useState(""), [carbs, setCarbs] = useState("");
+  return (
+    <FormShell>
+      <input style={{ ...inputStyle, width: "100%", marginBottom: 8 }} placeholder="Meal (e.g. Breakfast, Snack — optional)" value={meal} onChange={e => setMeal(e.target.value)} />
+      <FieldRow>
+        <input style={inputStyle} placeholder="Calories" value={kcal} onChange={e => setKcal(e.target.value)} />
+        <input style={inputStyle} placeholder="Protein (g)" value={protein} onChange={e => setProtein(e.target.value)} />
+      </FieldRow>
+      <FieldRow>
+        <input style={inputStyle} placeholder="Fat (g)" value={fat} onChange={e => setFat(e.target.value)} />
+        <input style={inputStyle} placeholder="Carbs (g)" value={carbs} onChange={e => setCarbs(e.target.value)} />
+      </FieldRow>
+      <button style={submitStyle} onClick={() => kcal && onSubmit({ meal, kcal: Number(kcal), protein: Number(protein)||0, fat: Number(fat)||0, carbs: Number(carbs)||0 })}>Add meal</button>
+    </FormShell>
+  );
+}
+
+function App() {
+  const [tab, setTab] = useState("home");
+  const [mobilitySubTab, setMobilitySubTab] = useState("ankle");
+  const [bodySubTab, setBodySubTab] = useState("measurements");
+  const [viewPhaseIdx, setViewPhaseIdx] = useState(null);
+  const [data, setData] = useState(loadData());
+  const [showForm, setShowForm] = useState(null);
+  const [sessionsExtra, setSessionsExtra] = useState(0);
+  const [statsExtra, setStatsExtra] = useState(0);
+  const [sleepExtra, setSleepExtra] = useState(0);
+  const [runsExtra, setRunsExtra] = useState(0);
+  const [pastDaysExtra, setPastDaysExtra] = useState(0);
+  const [editingSessionIdx, setEditingSessionIdx] = useState(null);
+  const [chartExercise, setChartExercise] = useState(null);
+  const fileInputRef = useRef(null);
+  const { phaseIdx, weekInPhase, elapsed, elapsedRaw } = currentWeekInfo();
+  const currentSessions = PHASE_SESSIONS[phaseIdx].sessions;
+  const deloadActive = isDeloadWeek(phaseIdx, weekInPhase);
+
+  const persist = useCallback(next => { setData(next); saveData(next); }, []);
+  const addStat = entry => persist({ ...data, stats: [{ ...entry, date: new Date().toISOString().slice(0,10) }, ...data.stats] });
+  const deleteStat = idx => persist({ ...data, stats: data.stats.filter((_, i) => i !== idx) });
+  const addSleep = entry => persist({ ...data, sleep: [{ ...entry, date: new Date().toISOString().slice(0,10) }, ...data.sleep] });
+  const deleteSleep = idx => persist({ ...data, sleep: data.sleep.filter((_, i) => i !== idx) });
+  const addSessionLog = (name, exercises) => persist({ ...data, sessions: [{ date: new Date().toISOString().slice(0,10), sessionName: name, phaseIdx, exercises }, ...data.sessions] });
+  const deleteSession = idx => persist({ ...data, sessions: data.sessions.filter((_, i) => i !== idx) });
+  const updateSession = (idx, name, exercises) => persist({ ...data, sessions: data.sessions.map((s, i) => i === idx ? { ...s, sessionName: name, exercises } : s) });
+  const addRun = entry => persist({ ...data, runs: [{ ...entry, date: new Date().toISOString().slice(0,10) }, ...data.runs] });
+  const deleteRun = idx => persist({ ...data, runs: data.runs.filter((_, i) => i !== idx) });
+  const addAnkleChecklist = exs => persist({ ...data, ankle: { ...data.ankle, sessions: [{ date: new Date().toISOString().slice(0,10), stage: data.ankle.stage, exercises: exs }, ...data.ankle.sessions] } });
+  const deleteAnkleEntry = idx => persist({ ...data, ankle: { ...data.ankle, sessions: data.ankle.sessions.filter((_, i) => i !== idx) } });
+  const setAnkleStage = stage => persist({ ...data, ankle: { ...data.ankle, stage } });
+  const addFlexSession = exs => persist({ ...data, flexibility: [{ date: new Date().toISOString().slice(0,10), exercises: exs }, ...data.flexibility] });
+  const deleteFlexEntry = idx => persist({ ...data, flexibility: data.flexibility.filter((_, i) => i !== idx) });
+  const addMeal = entry => persist({ ...data, nutrition: [{ ...entry, date: new Date().toISOString().slice(0,10) }, ...data.nutrition] });
+  const deleteMeal = idx => persist({ ...data, nutrition: data.nutrition.filter((_, i) => i !== idx) });
+  const toggleDayComplete = date => {
+    const has = data.nutritionComplete.includes(date);
+    persist({ ...data, nutritionComplete: has ? data.nutritionComplete.filter(d => d !== date) : [...data.nutritionComplete, date] });
+  };
+
+  const exportDataFn = () => {
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `trailhead-backup-${new Date().toISOString().slice(0,10)}.json`;
+    a.click(); URL.revokeObjectURL(url);
+  };
+  const importDataFn = file => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(reader.result);
+        if (window.confirm("Import will replace all current data on this device. Continue?")) {
+          persist({ stats: [], sessions: [], runs: [], ankle: { stage: 1, sessions: [] }, flexibility: [], nutrition: [], nutritionComplete: [], sleep: [], ...parsed });
+        }
+      } catch (e) { window.alert("Couldn't read that file — make sure it's a Trailhead export."); }
+    };
+    reader.readAsText(file);
+  };
+  const resetAll = () => {
+    if (window.confirm("This deletes all logged data on this device permanently. Continue?")) {
+      persist({ stats: [], sessions: [], runs: [], ankle: { stage: 1, sessions: [] }, flexibility: [], nutrition: [], nutritionComplete: [], sleep: [] });
+    }
+  };
+
+  const allExerciseNames = useMemo(() => Array.from(new Set(Object.values(currentSessions).flat().map(([n]) => n).filter(n => n !== "Plank" && n !== "Bicycle Crunch"))), [phaseIdx]);
+  useEffect(() => { if (!chartExercise || !allExerciseNames.includes(chartExercise)) setChartExercise(allExerciseNames[0]); }, [allExerciseNames]);
+  const chartData = useMemo(() => {
+    if (!chartExercise) return [];
+    return data.sessions.filter(s => s.exercises.some(e => e.name === chartExercise && e.weight !== ""))
+      .map(s => ({ date: s.date.slice(5), weight: parseFloat(s.exercises.find(e => e.name === chartExercise).weight) })).reverse();
+  }, [data.sessions, chartExercise]);
+  const weightTrend = useMemo(() => data.stats.filter(s => s.weight).map(s => ({ date: s.date.slice(5), value: parseFloat(s.weight) })).reverse(), [data.stats]);
+  const bfTrend = useMemo(() => data.stats.filter(s => s.bf).map(s => ({ date: s.date.slice(5), value: parseFloat(s.bf) })).reverse(), [data.stats]);
+  const rollingAvg = (arr, n, key) => { const slice = arr.slice(0, n).map(x => parseFloat(x[key])).filter(v => !isNaN(v)); return slice.length ? (slice.reduce((a,b)=>a+b,0)/slice.length).toFixed(0) : "—"; };
+  const rollingDailyAvg = (mealsByDate, n, key) => {
+    const dates = Object.keys(mealsByDate).sort((a,b) => b.localeCompare(a)).slice(0, n);
+    if (!dates.length) return "—";
+    const totals = dates.map(d => mealsByDate[d].reduce((s, m) => s + Number(m[key]||0), 0));
+    return (totals.reduce((a,b) => a+b, 0) / totals.length).toFixed(0);
+  };
+
+  const p = PHASE_SESSIONS[phaseIdx], phaseColor = PHASES[phaseIdx].color, target = PHASE_TARGET[phaseIdx];
+  const todayStr = new Date().toISOString().slice(0,10);
+  const todayMeals = data.nutrition.filter(n => n.date === todayStr);
+  const todayTotals = todayMeals.reduce((acc, m) => ({ kcal: acc.kcal + Number(m.kcal||0), protein: acc.protein + Number(m.protein||0), fat: acc.fat + Number(m.fat||0), carbs: acc.carbs + Number(m.carbs||0) }), { kcal: 0, protein: 0, fat: 0, carbs: 0 });
+  const todayComplete = data.nutritionComplete.includes(todayStr);
+
+  const weekDates = useMemo(() => getWeekDates(elapsedRaw), [elapsedRaw]);
+  const weightsCount = useMemo(() => data.sessions.filter(s => weekIndexOf(s.date) === elapsedRaw).length, [data.sessions, elapsedRaw]);
+  const weightsTarget = phaseIdx === 1 ? 4 : 3;
+  const runCount = useMemo(() => data.runs.filter(r => weekIndexOf(r.date) === elapsedRaw).length, [data.runs, elapsedRaw]);
+  const runTarget = runTargetForWeek(phaseIdx, weekInPhase);
+  const mobilityCount = useMemo(() => {
+    const ankleCount = data.ankle.sessions.filter(s => weekIndexOf(s.date) === elapsedRaw).length;
+    const flexCount = data.flexibility.filter(s => weekIndexOf(s.date) === elapsedRaw).length;
+    return ankleCount + flexCount;
+  }, [data.ankle.sessions, data.flexibility, elapsed]);
+  const mobilityTarget = mobilityTargetForWeek(phaseIdx, weekInPhase);
+  const scorecardBodyweight = data.stats[0] ? parseFloat(data.stats[0].weight) : 81;
+  const scorecardProteinFloor = proteinBands(scorecardBodyweight).floor;
+  const foodWeekStats = useMemo(() => {
+    let logged = 0, floorMet = 0;
+    weekDates.forEach(d => {
+      const meals = data.nutrition.filter(n => n.date === d);
+      if (!meals.length) return;
+      logged++;
+      const t = meals.reduce((acc, m) => ({ kcal: acc.kcal + Number(m.kcal||0), protein: acc.protein + Number(m.protein||0) }), { kcal: 0, protein: 0 });
+      if (t.kcal >= KCAL_RANGES[phaseIdx].floor && t.protein >= scorecardProteinFloor) floorMet++;
+    });
+    return { logged, floorMet };
+  }, [data.nutrition, weekDates, phaseIdx, scorecardProteinFloor]);
+  const todayChecklist = useMemo(() => buildTodayChecklist(phaseIdx, weekInPhase, data, todayStr), [phaseIdx, weekInPhase, data, todayStr]);
+  const sessionsRecentCount = useMemo(() => data.sessions.filter(s => s.date >= twoWeekCutoffStr()).length, [data.sessions]);
+  const sessionsShown = sessionsRecentCount + sessionsExtra;
+  const runsRecentCount = useMemo(() => data.runs.filter(r => r.date >= twoWeekCutoffStr()).length, [data.runs]);
+  const runsShown = runsRecentCount + runsExtra;
+  const statsRecentCount = useMemo(() => data.stats.filter(s => s.date >= twoWeekCutoffStr()).length, [data.stats]);
+  const statsShown = statsRecentCount + statsExtra;
+  const sleepRecentCount = useMemo(() => data.sleep.filter(s => s.date >= twoWeekCutoffStr()).length, [data.sleep]);
+  const sleepShown = sleepRecentCount + sleepExtra;
+
+  const sectionLabel = id => {
+    if (id === "data") return "Data";
+    if (id === "phase") return PHASES[viewPhaseIdx != null ? viewPhaseIdx : phaseIdx].name;
+    return (SECTIONS.find(s => s.id === id) || {}).label || "";
+  };
+
+  return (
+    <div style={{ background: bg, backgroundImage: "radial-gradient(circle at 20% 10%, rgba(193,98,43,0.10) 0%, transparent 40%)", minHeight: "100vh", maxWidth: 440, margin: "0 auto", display: "flex", flexDirection: "column" }}>
+      <div style={{ padding: "18px 18px 0", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+        <div>
+          <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 24, color: ink, fontWeight: 700 }}>{formatHeaderDate()}</div>
+          <div style={{ fontSize: 12, color: muted }}>Jul 27, 2026 → May 8, 2027 · 40 weeks on trail</div>
+        </div>
+        <button onClick={() => setTab("data")} aria-label="Data settings" style={{ background: "none", border: "none", cursor: "pointer", padding: 4, marginTop: 2, fontSize: 19 }}>💾</button>
+      </div>
+      <Timeline data={data} onPhaseClick={i => { setViewPhaseIdx(i); setTab("phase"); }} />
+      {deloadActive && (
+        <div style={{ margin: "0 18px 10px", background: "#8C4A2A", color: "#FBF4E6", borderRadius: 10, padding: "8px 12px", fontSize: 12, fontWeight: 600 }}>
+          Deload week — reduced volume. Session logging shows suggested lighter numbers.
+        </div>
+      )}
+      <div style={{ flex: 1, overflowY: "auto", padding: "4px 18px 32px" }}>
+
+        {tab !== "home" && <BackHeader label={sectionLabel(tab)} onBack={() => setTab("home")} />}
+
+        {tab === "home" && (
+          <div>
+            <div style={{ fontSize: 12, textTransform: "uppercase", color: muted, marginBottom: 8 }}>This week</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 }}>
+              <ScorecardTile label="Weights" count={weightsCount} target={weightsTarget} onClick={() => setTab("sessions")} />
+              <ScorecardTile label="Run" count={runCount} target={runTarget} extra={runTarget === 0 ? "Starts week 5" : null} onClick={() => setTab("run")} />
+              <ScorecardTile label="Mobility" count={mobilityCount} target={mobilityTarget} onClick={() => setTab("mobility")} />
+              <ScorecardTile label="Nutrition" count={foodWeekStats.logged} target={7} extra={foodWeekStats.logged > 0 ? foodWeekStats.floorMet + "/" + foodWeekStats.logged + " on target" : null} onClick={() => setTab("food")} />
+            </div>
+
+            <div style={{ ...card, padding: "12px 14px", marginBottom: 14 }}>
+              <div style={{ fontSize: 11, textTransform: "uppercase", color: "#6B6F63", marginBottom: 4 }}>Due today — {DAY_NAMES[(new Date().getDay() + 6) % 7]}</div>
+              {todayChecklist.length <= 1 && (
+                <div style={{ fontSize: 12.5, color: "#4A4D42", fontStyle: "italic", marginBottom: 6 }}>Rest day — nothing scheduled for training, running, or mobility.</div>
+              )}
+              {todayChecklist.map((item, i) => (
+                <ChecklistRow key={i} label={item.label} done={item.done} isLast={i === todayChecklist.length - 1} onClick={() => setTab(item.tab)} />
+              ))}
+              {todayChecklist.length <= 1 && (() => {
+                const next = nextUpFromToday(phaseIdx, weekInPhase);
+                return next ? (
+                  <div style={{ fontSize: 11.5, color: "#8A7B5C", marginTop: 8, paddingTop: 8, borderTop: "1px solid #E2DCCB" }}>
+                    Next up: <strong>{next.day}</strong> — {next.activity}
+                  </div>
+                ) : null;
+              })()}
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              {SECTIONS.map(s => (
+                <IconTile key={s.id} icon={s.icon} label={s.label} onClick={() => setTab(s.id)} badge={deloadActive && (s.id === "sessions" || s.id === "schedule") ? "!" : null} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {tab === "schedule" && (() => {
+          const template = weekTemplate(phaseIdx, weekInPhase);
+          const now = new Date();
+          const todayName = DAY_NAMES[(now.getDay() + 6) % 7];
+          const weekDatesLocal = getWeekDates(elapsedRaw);
+          const dayLetters = ["M","T","W","T","F","S","S"];
+          const domains = [
+            { key: "weights", label: "Weights" },
+            { key: "run", label: "Run" },
+            { key: "mobility", label: "Mobility" },
+            { key: "food", label: "Nutrition" },
+          ];
+          const activeDomains = domains.filter(d => DAY_NAMES.some(day => domainDueOnDay(d.key, template[day])));
+          const skippedDomains = domains.filter(d => !activeDomains.includes(d));
+          const cellColor = (domain, dateStr) => {
+            const dayName = DAY_NAMES[weekDatesLocal.indexOf(dateStr)];
+            const info = template[dayName];
+            const due = domainDueOnDay(domain, info);
+            const logged = domainLoggedOnDate(domain, dateStr, data);
+            if (logged) return "#7A8F5C";
+            if (!due) return "transparent";
+            if (dateStr === todayStr) return "#C1622B";
+            return dateStr > todayStr ? "#EDE7D8" : "#8C4A2A";
+          };
+          return (
+            <div>
+              <div style={{ ...card, padding: "12px 14px", marginBottom: 16 }}>
+                <div style={{ fontSize: 11, textTransform: "uppercase", color: "#6B6F63", marginBottom: 8 }}>This week at a glance</div>
+                <div style={{ display: "grid", gridTemplateColumns: "58px repeat(7, 1fr)", gap: 4, alignItems: "center", marginBottom: 4 }}>
+                  <div />
+                  {dayLetters.map((l, i) => <div key={i} style={{ fontSize: 9, textAlign: "center", color: "#8A7B5C" }}>{l}</div>)}
+                </div>
+                {activeDomains.map(d => (
+                  <div key={d.key} style={{ display: "grid", gridTemplateColumns: "58px repeat(7, 1fr)", gap: 4, alignItems: "center", marginBottom: 4 }}>
+                    <div style={{ fontSize: 10, color: "#4A4D42" }}>{d.label}</div>
+                    {weekDatesLocal.map(dateStr => (
+                      <div key={dateStr} style={{ height: 14, borderRadius: 3, background: cellColor(d.key, dateStr) }} />
+                    ))}
+                  </div>
+                ))}
+                {skippedDomains.length > 0 && (
+                  <div style={{ fontSize: 9.5, color: "#8A7B5C", fontStyle: "italic", marginTop: 4, marginBottom: 4 }}>
+                    {skippedDomains.map(d => d.label).join(", ")} not scheduled this week.
+                  </div>
+                )}
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8, fontSize: 9.5, color: "#6B6F63", marginTop: 6 }}>
+                  <span><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 2, background: "#7A8F5C", marginRight: 4 }} />Done</span>
+                  <span><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 2, background: "#C1622B", marginRight: 4 }} />Due today</span>
+                  <span><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 2, background: "#8C4A2A", marginRight: 4 }} />Missed</span>
+                </div>
+              </div>
+
+              <div style={{ color: ink, fontSize: 12.5, marginBottom: 14, lineHeight: 1.6 }}>
+                This week's plan — {PHASES[phaseIdx].name}, week {weekInPhase}. Session letters rotate week to week.
+                {deloadActive && <strong style={{ color: "#E8B084" }}> This is a deload week.</strong>}
+              </div>
+              {DAY_NAMES.map(day => {
+                const info = template[day];
+                const isToday = day === todayName;
+                return (
+                  <div key={day} style={{ ...card, padding: "12px 14px", marginBottom: 10, border: isToday ? `2px solid ${TAG_COLOR[info.tag]}` : "2px solid transparent" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 3 }}>
+                      <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 16, fontWeight: 700 }}>
+                        {day}{isToday && <span style={{ fontSize: 10, color: TAG_COLOR[info.tag], marginLeft: 6, fontWeight: 700, textTransform: "uppercase" }}> Today</span>}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: 13, color: TAG_COLOR[info.tag], fontWeight: 600 }}>{info.activity}</div>
+                  </div>
+                );
+              })}
+              <div style={{ color: muted, fontSize: 11.5, fontStyle: "italic", margin: "8px 0 16px", lineHeight: 1.5 }}>
+                If strength and running ever conflict, strength wins — running is allowed to slip.
+              </div>
+
+              <button onClick={() => { setViewPhaseIdx(phaseIdx); setTab("phase"); }}
+                style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "11px 0", borderRadius: 8, border: "1px solid " + PHASES[phaseIdx].color, background: "none", color: PHASES[phaseIdx].color, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+                View {PHASES[phaseIdx].name} details →
+              </button>
+            </div>
+          );
+        })()}
+
+        {tab === "phase" && (() => {
+          const pIdx = viewPhaseIdx != null ? viewPhaseIdx : phaseIdx;
+          const p = PHASE_SESSIONS[pIdx];
+          const phaseColor = PHASES[pIdx].color;
+          const target = PHASE_TARGET[pIdx];
+          const showingDeload = pIdx === phaseIdx && deloadActive;
+          const nutritionTarget = PHASE_NUTRITION[pIdx];
+          const kcalRange = KCAL_RANGES[pIdx];
+          const macroBodyweight = data.stats[0] ? parseFloat(data.stats[0].weight) : 81;
+          const macroProtein = proteinBands(macroBodyweight);
+          return (
+            <div>
+              <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 14, color: phaseColor, marginBottom: 4, textTransform: "uppercase" }}>{PHASES[pIdx].name} · {p.label}</div>
+              <div style={{ color: ink, fontSize: 12.5, lineHeight: 1.6, marginBottom: 4 }}>{p.framing}</div>
+              <div style={{ color: muted, fontSize: 11.5, fontStyle: "italic", marginBottom: 14 }}>{p.deload}</div>
+              <div style={{ ...card, padding: "12px 14px", marginBottom: 16 }}>
+                <div style={{ fontSize: 11, textTransform: "uppercase", color: "#6B6F63", marginBottom: 4 }}>{target.label}</div>
+                <div style={{ display: "flex", gap: 18 }}>
+                  <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 17, fontWeight: 700 }}>{target.weight}kg</span>
+                  <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 17, fontWeight: 700 }}>{target.bf}% BF</span>
+                </div>
+                <div style={{ fontSize: 10.5, color: "#8A7B5C", marginTop: 4 }}>Recalibration checkpoint: compare actual numbers to this at the phase boundary.</div>
+              </div>
+              {Object.entries(p.sessions).map(([name, exercises]) => (
+                <div key={name} style={{ marginBottom: 12 }}>
+                  <div style={{ color: ink, fontSize: 12.5, fontWeight: 700, marginBottom: 4 }}>{name}</div>
+                  <div style={{ ...card, padding: "10px 12px" }}>
+                    {exercises.map(([ex, scheme], i) => (
+                      <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", borderBottom: i < exercises.length-1 ? "1px solid #E2DCCB" : "none" }}>
+                        <span style={{ fontSize: 12.5 }}>{ex}</span><span style={{ fontSize: 11.5, color: "#6B6F63" }}>{showingDeload ? deloadScheme(scheme) : scheme}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+              <div style={{ color: ink, fontSize: 12.5, lineHeight: 1.6, margin: "4px 0 14px" }}>
+                <strong style={{ color: "#C1622B" }}>Sleep target:</strong> 7–9h, consistent bed/wake time — log it on the Vitals page.
+              </div>
+              <div style={{ fontSize: 12, textTransform: "uppercase", color: "#8FA38C", marginBottom: 8 }}>Macros</div>
+              <div style={{ ...card, padding: "12px 14px", marginBottom: 16 }}>
+                <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 18, fontWeight: 700 }}>{kcalRange.floor}+ kcal</div>
+                <div style={{ fontSize: 11, color: "#8A7B5C", marginBottom: 8 }}>Optimal {kcalRange.optimalMin}–{kcalRange.optimalMax} kcal</div>
+                <div style={{ fontSize: 12, color: "#4A4D42", marginBottom: 4 }}>{nutritionTarget.fat}g fat · {nutritionTarget.carbs}g carbs</div>
+                <div style={{ fontSize: 11.5, color: "#8A7B5C" }}>Protein — floor {macroProtein.floor}g · optimal {macroProtein.optimal}g (1.6–2.0g/kg, from your last logged weight)</div>
+                <div style={{ fontSize: 10.5, color: "#6B6F63", fontStyle: "italic", marginTop: 8 }}>Log meals and see this broken down day by day on the Nutrition page.</div>
+              </div>
+              <div style={{ ...card, padding: "12px 14px" }}>
+                <div style={{ fontSize: 11, textTransform: "uppercase", color: "#6B6F63", marginBottom: 6 }}>If you miss time</div>
+                <div style={{ fontSize: 11.5, lineHeight: 1.6 }}>
+                  <div style={{ marginBottom: 4 }}><strong>1–3 days:</strong> resume the schedule, don't make up sessions.</div>
+                  <div style={{ marginBottom: 4 }}><strong>4–10 days:</strong> resume at current phase, drop starting weights ~10% for one week.</div>
+                  <div><strong>10+ days:</strong> fresh restart — recalculate starting weights at ~80% of last logged.</div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {tab === "body" && (
+          <div>
+            <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
+              <SubTab label="Measurements" active={bodySubTab === "measurements"} onClick={() => setBodySubTab("measurements")} />
+              <SubTab label="Sleep" active={bodySubTab === "sleep"} onClick={() => setBodySubTab("sleep")} />
+            </div>
+
+            {bodySubTab === "measurements" && (
+              <div>
+                <AddButton label="Log weight, waist, BF%" onClick={() => setShowForm(showForm === "body" ? null : "body")} />
+                {showForm === "body" && <BodyForm onSubmit={e => { addStat(e); setShowForm(null); }} />}
+                {(weightTrend.length >= 2 || bfTrend.length >= 2) && (
+                  <div style={{ ...card, padding: 14, marginBottom: 16 }}>
+                    <div style={{ fontSize: 12, textTransform: "uppercase", color: "#6B6F63", marginBottom: 6 }}>Weight trend</div>
+                    <MiniChart data={weightTrend} baseline={target.weight} />
+                    {bfTrend.length >= 2 && (<>
+                      <div style={{ fontSize: 12, textTransform: "uppercase", color: "#6B6F63", margin: "12px 0 6px" }}>Body fat % trend</div>
+                      <MiniChart data={bfTrend} baseline={target.bf} />
+                    </>)}
+                  </div>
+                )}
+                <div style={{ fontSize: 11.5, color: "#8FA38C", marginBottom: 6 }}>{data.stats.length > 0 ? "Last 2 weeks" : ""}</div>
+                {data.stats.length === 0 ? <EmptyState text="No entries yet. Log weekly, same conditions each time." /> :
+                  data.stats.slice(0, statsShown).map((s, i) => (
+                    <Entry key={i} onDelete={() => deleteStat(i)}>
+                      <div style={{ display: "flex", justifyContent: "space-between", paddingRight: 24 }}>
+                        <div style={{ fontSize: 15, fontWeight: 600 }}>{s.weight}kg · {s.waist}cm{s.bf ? ` · ${s.bf}% BF` : ""}</div>
+                        <div style={{ fontSize: 11, color: "#6B6F63" }}>{s.date}</div>
+                      </div>
+                    </Entry>
+                  ))}
+                <ShowMoreButton remaining={data.stats.length - statsShown} onClick={() => setStatsExtra(v => v + 10)} />
+              </div>
+            )}
+
+            {bodySubTab === "sleep" && (
+              <div>
+                <AddButton label="Log last night's sleep" onClick={() => setShowForm(showForm === "sleep" ? null : "sleep")} />
+                {showForm === "sleep" && <SleepForm onSubmit={e => { addSleep(e); setShowForm(null); }} />}
+                <div style={{ fontSize: 11.5, color: "#8FA38C", marginBottom: 6 }}>{data.sleep.length > 0 ? "Last 2 weeks" : ""}</div>
+                {data.sleep.length === 0 ? <EmptyState text="No sleep logged yet. Log it daily — doesn't need to line up with a weigh-in." /> :
+                  data.sleep.slice(0, sleepShown).map((s, i) => (
+                    <Entry key={i} onDelete={() => deleteSleep(i)}>
+                      <div style={{ display: "flex", justifyContent: "space-between", paddingRight: 24 }}>
+                        <div style={{ fontSize: 15, fontWeight: 600 }}>{s.hours}h{s.quality ? ` · quality ${s.quality}/5` : ""}</div>
+                        <div style={{ fontSize: 11, color: "#6B6F63" }}>{s.date}</div>
+                      </div>
+                    </Entry>
+                  ))}
+                <ShowMoreButton remaining={data.sleep.length - sleepShown} onClick={() => setSleepExtra(v => v + 10)} />
+              </div>
+            )}
+          </div>
+        )}
+
+        {tab === "sessions" && (
+          <div>
+            <AddButton
+              label={editingSessionIdx !== null ? "Editing session — cancel" : deloadActive ? "Log today's session (deload)" : "Log today's session"}
+              onClick={() => { if (editingSessionIdx !== null) { setEditingSessionIdx(null); setShowForm(null); } else setShowForm(showForm === "session" ? null : "session"); }}
+            />
+            {(showForm === "session" || editingSessionIdx !== null) && (
+              <SessionForm
+                sessions={currentSessions}
+                priorSessions={data.sessions}
+                initial={editingSessionIdx !== null ? data.sessions[editingSessionIdx] : null}
+                isDeload={deloadActive && editingSessionIdx === null}
+                onSubmit={(n, ex) => {
+                  if (editingSessionIdx !== null) { updateSession(editingSessionIdx, n, ex); setEditingSessionIdx(null); }
+                  else addSessionLog(n, ex);
+                  setShowForm(null);
+                }}
+              />
+            )}
+            {allExerciseNames.length > 0 && (
+              <div style={{ ...card, padding: 14, marginBottom: 16 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                  <span style={{ fontSize: 12, textTransform: "uppercase", color: "#6B6F63" }}>Progression</span>
+                  <select value={chartExercise || ""} onChange={e => setChartExercise(e.target.value)} style={{ fontSize: 11, border: "1px solid #D8D2C2", borderRadius: 6, padding: "3px 6px", background: "#FCFAF4" }}>
+                    {allExerciseNames.map(n => <option key={n} value={n}>{n}</option>)}
+                  </select>
+                </div>
+                {chartExercise && REVERSE_PROGRESS.includes(chartExercise) && <div style={{ fontSize: 10.5, color: "#8C4A2A", fontStyle: "italic", marginBottom: 6 }}>Lower number = less assistance = stronger.</div>}
+                {chartExercise && (() => {
+                  const plateau = plateauCheck(data.sessions, chartExercise);
+                  return plateau ? (
+                    <div style={{ fontSize: 11, color: "#8C4A2A", fontWeight: 600, marginBottom: 8, padding: "6px 8px", background: "#F3E4D8", borderRadius: 6 }}>
+                      ⚠️ Stuck at {plateau.weight}kg for {plateau.count} sessions without hitting all reps — consider holding steady, checking recovery, or reviewing form.
+                    </div>
+                  ) : null;
+                })()}
+                <ExerciseMiniChart data={chartData} baseline={BASELINE[chartExercise]} />
+              </div>
+            )}
+            <div style={{ fontSize: 12, textTransform: "uppercase", color: "#9A9C8E", marginBottom: 8 }}>Session history — last 2 weeks</div>
+            {data.sessions.length > 0 && (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 10, fontSize: 9.5, color: "#8FA38C", marginBottom: 10 }}>
+                <span><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 2, background: "#D4AF37", marginRight: 4 }} />All reps hit</span>
+                <span><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 2, background: "#7A8F5C", marginRight: 4 }} />In range</span>
+                <span><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 2, background: "#8C4A2A", marginRight: 4 }} />Below range</span>
+              </div>
+            )}
+            {data.sessions.length === 0 ? <EmptyState text="No sessions logged yet." /> :
+              data.sessions.slice(0, sessionsShown).map((s, i) => (
+                <Entry key={i} onEdit={() => { setEditingSessionIdx(i); setShowForm(null); }} onDelete={() => { if (editingSessionIdx === i) setEditingSessionIdx(null); deleteSession(i); }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, paddingRight: 40 }}>
+                    <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, fontWeight: 600 }}>{s.sessionName}</span>
+                    <span style={{ fontSize: 11, color: "#6B6F63" }}>{s.date}</span>
+                  </div>
+                  {s.exercises.filter(e => e.weight !== "").map((e, j) => {
+                    const scheme = getScheme(s.phaseIdx, s.sessionName, e.name);
+                    const level = isDeloadForDate(s.date) ? null : (scheme ? repSuccessLevel(e.reps, scheme) : null);
+                    const levelColor = level === "gold" ? "#D4AF37" : level === "green" ? "#7A8F5C" : level === "rust" ? "#8C4A2A" : "#2B2318";
+                    return (
+                      <div key={j} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "2px 0" }}>
+                        <span>{e.name}</span><span style={{ color: levelColor, fontWeight: level ? 700 : 400 }}>{e.weight}kg × {e.reps}</span>
+                      </div>
+                    );
+                  })}
+                </Entry>
+              ))}
+            <ShowMoreButton remaining={data.sessions.length - sessionsShown} onClick={() => setSessionsExtra(v => v + 10)} />
+          </div>
+        )}
+
+        {tab === "run" && (
+          <div>
+            <AddButton label="Log a run" onClick={() => setShowForm(showForm === "run" ? null : "run")} />
+            {showForm === "run" && <RunForm onSubmit={e => { addRun(e); setShowForm(null); }} />}
+            {data.runs.length > 0 && <div style={{ fontSize: 12, textTransform: "uppercase", color: "#8FA38C", marginBottom: 8 }}>Run history — last 2 weeks</div>}
+            {data.runs.length === 0 ? <EmptyState text="Running starts week 5 of Phase 1." /> :
+              data.runs.slice(0, runsShown).map((r, i) => (
+                <Entry key={i} onDelete={() => deleteRun(i)}>
+                  <div style={{ display: "flex", justifyContent: "space-between", paddingRight: 24 }}>
+                    <div>
+                      <div style={{ fontSize: 15, fontWeight: 600 }}>{r.distance}km · {r.duration}min</div>
+                      <div style={{ fontSize: 11, color: r.continuous ? "#7A8F5C" : "#8C4A2A" }}>{r.continuous ? "Uninterrupted" : "Run/walk intervals"}</div>
+                    </div>
+                    <div style={{ fontSize: 11, color: "#6B6F63" }}>{r.date}</div>
+                  </div>
+                </Entry>
+              ))}
+            <ShowMoreButton remaining={data.runs.length - runsShown} onClick={() => setRunsExtra(v => v + 10)} />
+          </div>
+        )}
+
+        {tab === "mobility" && (
+          <div>
+            <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
+              <SubTab label="Ankle" active={mobilitySubTab === "ankle"} onClick={() => setMobilitySubTab("ankle")} />
+              <SubTab label="Flexibility" active={mobilitySubTab === "flex"} onClick={() => setMobilitySubTab("flex")} />
+            </div>
+            {mobilitySubTab === "ankle" && (
+              <div>
+                <div style={{ ...card, padding: 14, marginBottom: 14 }}>
+                  <div style={{ fontSize: 12, color: "#6B6F63", marginBottom: 8, textTransform: "uppercase" }}>Current stage</div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    {[1,2].map(s => (
+                      <button key={s} onClick={() => setAnkleStage(s)} style={{ flex: 1, padding: "8px 0", borderRadius: 6, border: "none", cursor: "pointer", background: data.ankle.stage === s ? gold : "#E4DFD1", color: data.ankle.stage === s ? "#201B10" : "#6B6F63", fontWeight: 700 }}>Stage {s}</button>
+                    ))}
+                  </div>
+                </div>
+                <ExerciseChecklist exercises={ANKLE_EXERCISES[data.ankle.stage]} onSubmit={addAnkleChecklist} submitLabel="Log completed exercises" />
+                <div style={{ fontSize: 12, textTransform: "uppercase", color: "#9A9C8E", marginBottom: 8, marginTop: 6 }}>History</div>
+                {data.ankle.sessions.length === 0 ? <EmptyState text="No sessions logged yet." /> :
+                  data.ankle.sessions.slice(0, 12).map((s, i) => (
+                    <Entry key={i} onDelete={() => deleteAnkleEntry(i)}>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4, paddingRight: 24 }}>
+                        <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 14 }}>Stage {s.stage}</span>
+                        <span style={{ fontSize: 11, color: "#6B6F63" }}>{s.date}</span>
+                      </div>
+                      {(s.exercises || []).map((ex, j) => <div key={j} style={{ fontSize: 12, padding: "1px 0" }}>✓ {ex}</div>)}
+                    </Entry>
+                  ))}
+              </div>
+            )}
+            {mobilitySubTab === "flex" && (
+              <div>
+                <div style={{ color: ink, fontSize: 12.5, marginBottom: 12, lineHeight: 1.5 }}>10-15 min after each strength session, all three phases.</div>
+                <ExerciseChecklist exercises={FLEXIBILITY_ROUTINE} onSubmit={addFlexSession} submitLabel="Log flexibility session" />
+                <div style={{ fontSize: 12, textTransform: "uppercase", color: "#9A9C8E", marginBottom: 8, marginTop: 6 }}>History</div>
+                {data.flexibility.length === 0 ? <EmptyState text="No sessions logged yet." /> :
+                  data.flexibility.slice(0, 12).map((s, i) => (
+                    <Entry key={i} onDelete={() => deleteFlexEntry(i)}>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4, paddingRight: 24 }}>
+                        <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 14 }}>Flexibility session</span>
+                        <span style={{ fontSize: 11, color: "#6B6F63" }}>{s.date}</span>
+                      </div>
+                      {(s.exercises || []).map((ex, j) => <div key={j} style={{ fontSize: 12, padding: "1px 0" }}>✓ {ex}</div>)}
+                    </Entry>
+                  ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {tab === "food" && (() => {
+          const target = PHASE_NUTRITION[phaseIdx];
+          const bodyweight = data.stats[0] ? parseFloat(data.stats[0].weight) : 81;
+          const { floor: proteinFloor, optimal: proteinOptimal } = proteinBands(bodyweight);
+          const kcalColor = kcalStatusColor(todayTotals.kcal, phaseIdx);
+          const proteinColor = proteinStatusColor(todayTotals.protein, proteinFloor, proteinOptimal);
+          const mealsByDate = {};
+          data.nutrition.forEach(m => { (mealsByDate[m.date] = mealsByDate[m.date] || []).push(m); });
+          const pastDates = Object.keys(mealsByDate).filter(d => d !== todayStr).sort((a,b) => b.localeCompare(a));
+          const pastDaysRecentCount = pastDates.filter(d => d >= twoWeekCutoffStr()).length;
+          const pastDaysShown = pastDaysRecentCount + pastDaysExtra;
+          const last7 = Array.from({ length: 7 }, (_, i) => {
+            const d = new Date();
+            d.setDate(d.getDate() - (6 - i));
+            const ds = d.toISOString().slice(0, 10);
+            const meals = mealsByDate[ds] || (ds === todayStr ? todayMeals : []);
+            if (!meals.length) return { date: ds, logged: false };
+            const t = meals.reduce((acc, m) => ({ kcal: acc.kcal + Number(m.kcal||0), protein: acc.protein + Number(m.protein||0) }), { kcal: 0, protein: 0 });
+            return { date: ds, logged: true, kcal: t.kcal, protein: t.protein };
+          });
+          const kcalHits = last7.filter(d => d.logged && d.kcal >= KCAL_RANGES[phaseIdx].floor && d.kcal <= KCAL_RANGES[phaseIdx].softOverMax).length;
+          const proteinHits = last7.filter(d => d.logged && d.protein >= proteinFloor).length;
+          const loggedDays = last7.filter(d => d.logged).length;
+          return (
+          <div>
+            <div style={{ ...card, padding: "12px 14px", marginBottom: 14 }}>
+              <div style={{ fontSize: 11, textTransform: "uppercase", color: "#6B6F63", marginBottom: 6 }}>{PHASES[phaseIdx].name} target</div>
+              <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 18, fontWeight: 700 }}>{KCAL_RANGES[phaseIdx].floor}+ kcal</div>
+              <div style={{ fontSize: 11, color: "#8A7B5C" }}>Optimal {KCAL_RANGES[phaseIdx].optimalMin}–{KCAL_RANGES[phaseIdx].optimalMax} kcal</div>
+              <div style={{ fontSize: 12, color: "#4A4D42" }}>{target.fat}g fat · {target.carbs}g carbs</div>
+              <div style={{ fontSize: 11.5, color: "#8A7B5C", marginTop: 4 }}>{"Protein — floor " + proteinFloor + "g · optimal " + proteinOptimal + "g (1.6-2.0g/kg, from your last logged weight)"}</div>
+            </div>
+
+            <div style={{ ...card, padding: "12px 14px", marginBottom: 14 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
+                <span style={{ fontSize: 11, textTransform: "uppercase", color: "#6B6F63" }}>Today so far</span>
+                {todayComplete && <span style={{ fontSize: 11, color: "#7A8F5C", fontWeight: 700 }}>✓ Day complete</span>}
+              </div>
+              <div style={{ display: "flex", gap: 16, alignItems: "baseline" }}>
+                <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 22, fontWeight: 700, color: kcalColor }}>{todayTotals.kcal} kcal</span>
+                <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 15, fontWeight: 700, color: proteinColor }}>{todayTotals.protein}g P</span>
+              </div>
+              <div style={{ fontSize: 12, color: "#4A4D42", marginBottom: 4 }}>{todayTotals.fat}g F · {todayTotals.carbs}g C — {todayMeals.length} {todayMeals.length === 1 ? "meal" : "meals"} logged</div>
+              {todayComplete && kcalStatusLabel(todayTotals.kcal, phaseIdx) && (
+                <div style={{ fontSize: 11, color: kcalColor, fontWeight: 700, marginBottom: 4 }}>{kcalStatusLabel(todayTotals.kcal, phaseIdx)}</div>
+              )}
+              {todayComplete && (
+                <div style={{ fontSize: 11, color: proteinColor, fontWeight: 700, marginBottom: 8 }}>{proteinStatusLabel(todayTotals.protein, proteinFloor, proteinOptimal)}</div>
+              )}
+              <button onClick={() => toggleDayComplete(todayStr)}
+                style={{ width: "100%", padding: "8px 0", borderRadius: 6, border: "none", cursor: "pointer",
+                  background: todayComplete ? "#E4DFD1" : gold, color: todayComplete ? "#6B6F63" : "#201B10", fontWeight: 700, fontSize: 12.5 }}>
+                {todayComplete ? "Undo — still adding meals" : "Mark today's log complete"}
+              </button>
+            </div>
+
+            <AddButton label="Add a meal" onClick={() => setShowForm(showForm === "food" ? null : "food")} />
+            {showForm === "food" && <MealForm onSubmit={e => { addMeal(e); setShowForm(null); }} />}
+
+            {todayMeals.length > 0 && (
+              <div style={{ marginBottom: 16 }}>
+                {todayMeals.map(n => {
+                  const idx = data.nutrition.indexOf(n);
+                  return (
+                    <Entry key={idx} onDelete={() => deleteMeal(idx)}>
+                      <div style={{ display: "flex", justifyContent: "space-between", paddingRight: 24 }}>
+                        <div>
+                          <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 14, fontWeight: 700 }}>{n.meal || "Meal"}</div>
+                          <div style={{ fontSize: 11.5, color: "#4A4D42" }}>{n.kcal} kcal · {n.protein}g P · {n.fat}g F · {n.carbs}g C</div>
+                        </div>
+                      </div>
+                    </Entry>
+                  );
+                })}
+              </div>
+            )}
+
+            <div style={{ ...card, padding: 14, marginBottom: 16 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
+                <span style={{ fontSize: 12, textTransform: "uppercase", color: "#6B6F63" }}>This week</span>
+                <span style={{ fontSize: 11, color: "#8A7B5C" }}>{loggedDays}/7 days logged</span>
+              </div>
+              <div style={{ fontSize: 10.5, color: "#6B6F63", marginBottom: 4 }}>Calories on target</div>
+              <div style={{ display: "flex", gap: 5, marginBottom: 10 }}>
+                {last7.map((d, i) => (
+                  <div key={i} title={d.logged ? `${d.date}: ${d.kcal} kcal` : `${d.date}: not logged`}
+                    style={{ flex: 1, height: 14, borderRadius: 3, background: !d.logged ? "#D8D2C2" : kcalStatusColor(d.kcal, phaseIdx) }} />
+                ))}
+              </div>
+              <div style={{ fontSize: 10.5, color: "#6B6F63", marginBottom: 4 }}>{"Protein (floor " + proteinFloor + "g · optimal " + proteinOptimal + "g)"}</div>
+              <div style={{ display: "flex", gap: 5, marginBottom: 8 }}>
+                {last7.map((d, i) => (
+                  <div key={i} title={d.logged ? `${d.date}: ${d.protein}g protein` : `${d.date}: not logged`}
+                    style={{ flex: 1, height: 14, borderRadius: 3, background: !d.logged ? "#D8D2C2" : proteinStatusColor(d.protein, proteinFloor, proteinOptimal) }} />
+                ))}
+              </div>
+              <div style={{ fontSize: 10.5, color: "#8A7B5C", marginBottom: 8 }}>{kcalHits}/{loggedDays || 0} days met deficit floor · {proteinHits}/{loggedDays || 0} days met protein floor</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 10, fontSize: 9.5, color: "#6B6F63" }}>
+                <span><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 2, background: GOLD_STATUS, marginRight: 4 }} />Optimal</span>
+                <span><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 2, background: GREEN_STATUS, marginRight: 4 }} />Floor met</span>
+                <span><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 2, background: ORANGE_STATUS, marginRight: 4 }} />Over (kcal only)</span>
+                <span><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 2, background: RUST_STATUS, marginRight: 4 }} />Below floor</span>
+                <span><span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 2, background: "#D8D2C2", marginRight: 4 }} />No data</span>
+              </div>
+            </div>
+
+            {data.nutrition.length > 0 && (
+              <div style={{ ...card, padding: "12px 14px", marginBottom: 16 }}>
+                <div style={{ fontSize: 11, textTransform: "uppercase", color: "#6B6F63", marginBottom: 6 }}>Last 7 days avg (daily totals)</div>
+                <div style={{ display: "flex", gap: 20 }}>
+                  <StatBadge label="Kcal" value={rollingDailyAvg(mealsByDate, 7, "kcal")} />
+                  <StatBadge label="Protein" value={rollingDailyAvg(mealsByDate, 7, "protein") + "g"} />
+                </div>
+              </div>
+            )}
+
+            {pastDates.length > 0 && (
+              <>
+                <div style={{ fontSize: 12, textTransform: "uppercase", color: "#8FA38C", marginBottom: 8 }}>Past days — last 2 weeks</div>
+                {pastDates.slice(0, pastDaysShown).map(date => {
+                  const meals = mealsByDate[date];
+                  const total = meals.reduce((acc, m) => ({ kcal: acc.kcal + Number(m.kcal||0), protein: acc.protein + Number(m.protein||0) }), { kcal: 0, protein: 0 });
+                  const complete = data.nutritionComplete.includes(date);
+                  return (
+                    <Entry key={date}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
+                        <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 14, fontWeight: 700 }}>{date}{complete && <span style={{ color: "#7A8F5C" }}> ✓</span>}</span>
+                        <span style={{ fontSize: 11, display: "flex", gap: 8 }}>
+                          <span style={{ color: kcalStatusColor(total.kcal, phaseIdx), fontWeight: 700 }}>{total.kcal} kcal</span>
+                          <span style={{ color: proteinStatusColor(total.protein, proteinFloor, proteinOptimal), fontWeight: 700 }}>{total.protein}g P</span>
+                        </span>
+                      </div>
+                      {meals.map(m => {
+                        const idx = data.nutrition.indexOf(m);
+                        return (
+                          <div key={idx} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "2px 0" }}>
+                            <span>{m.meal || "Meal"}</span>
+                            <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                              {m.kcal}kcal
+                              <button onClick={() => deleteMeal(idx)} style={{ background: "none", border: "none", cursor: "pointer", color: "#8A7B5C" }}>×</button>
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </Entry>
+                  );
+                })}
+                <ShowMoreButton remaining={pastDates.length - pastDaysShown} onClick={() => setPastDaysExtra(v => v + 10)} />
+              </>
+            )}
+          </div>
+          );
+        })()}
+
+        {tab === "data" && (
+          <div>
+            <div style={{ color: ink, fontSize: 12.5, marginBottom: 14, lineHeight: 1.6 }}>
+              Everything logged here lives only on this device. Export a backup regularly, especially before switching phones.
+            </div>
+            <button onClick={exportDataFn} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", background: gold, color: "#201B10", fontWeight: 700, fontSize: 13, padding: "11px 0", borderRadius: 8, border: "none", cursor: "pointer", marginBottom: 10 }}>
+              ⬇ Export data
+            </button>
+            <button onClick={() => fileInputRef.current && fileInputRef.current.click()} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", background: "#E4DFD1", color: "#2B2318", fontWeight: 700, fontSize: 13, padding: "11px 0", borderRadius: 8, border: "none", cursor: "pointer", marginBottom: 10 }}>
+              ⬆ Import data
+            </button>
+            <input ref={fileInputRef} type="file" accept="application/json" style={{ display: "none" }}
+              onChange={e => { if (e.target.files[0]) importDataFn(e.target.files[0]); e.target.value = ""; }} />
+            <button onClick={resetAll} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, width: "100%", background: "transparent", color: "#8C4A2A", fontWeight: 700, fontSize: 12.5, padding: "10px 0", borderRadius: 8, border: "1px solid #8C4A2A", cursor: "pointer" }}>
+              ↺ Reset all data
+            </button>
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("service-worker.js").catch(() => {}));
+}
+</script>
+</body>
+</html>
