@@ -36,7 +36,6 @@ const EXERCISE_SUBSTITUTES = {
   "Bench Press": "No barbell? DB Bench Press or a chest press machine at a similar weight-per-side.",
   "Pull-Downs": "No lat pulldown? Assisted pull-ups work the same pattern.",
   "Leg Press": "No leg press? Goblet squats, or a leg extension + leg curl combo.",
-  "Shoulder Press (DB)": "No dumbbells free? Use a shoulder press machine.",
   "Leg Curl": "No leg curl machine? Nordic curls or stability-ball hamstring curls.",
   "Low Rows": "No cable row station? Use a chest-supported row machine.",
   "DB Bench Press": "No dumbbells free? Use a flat bench press machine.",
@@ -72,7 +71,7 @@ const START_WEIGHTS = { "Bench Press": 50, "Pull-Downs": 42.5, "Leg Press": 60, 
 const PHASE_SESSIONS = [
   { label: "3x/week full body — A / B / C rotation", framing: "Chase progress: add weight or reps once you hit the top of the rep range with good form.", deload: "Deload every 5th week — same exercises, ~50% less volume.",
     sessions: {
-      "Session A": [["Bench Press", "3 x 6-8"], ["Pull-Downs", "3 x 8-10"], ["Leg Press", "4 x 10-12"], ["Shoulder Press (DB)", "2 x 8-10"], ["Leg Curl", "3 x 10-12"], ["Overhead Triceps Extension", "2 x 10-12"], ["Plank", "2"]],
+      "Session A": [["Bench Press", "3 x 6-8"], ["Pull-Downs", "3 x 8-10"], ["Leg Press", "4 x 10-12"], ["Shoulder Press", "2 x 8-10"], ["Leg Curl", "3 x 10-12"], ["Overhead Triceps Extension", "2 x 10-12"], ["Plank", "2"]],
       "Session B": [["Low Rows", "3 x 6-8"], ["DB Bench Press", "3 x 8-10"], ["RDL", "3 x 10-12"], ["Lateral Raises", "3 x 12-15"], ["Preacher Curl (machine)", "3 x 12-15"], ["Bicycle Crunch", "2"]],
       "Session C": [["Incline Press", "3 x 8-10"], ["Cable Row", "3 x 8-10"], ["Leg Press", "4 x 10-12"], ["Calf Raises", "3 x 12-15"], ["Triceps Pushdown", "2 x 10-12"], ["Rear Delt Fly", "2 x 12-15"], ["Plank", "2"]],
     }},
@@ -85,7 +84,7 @@ const PHASE_SESSIONS = [
     }},
   { label: "3x/week full body — A / B / C (maintenance)", framing: "Hold, don't chase: match or hold Phase 2 end-weights. A flat or slightly-down week is expected, not a failure.", deload: "One deload around week 4 of this phase.",
     sessions: {
-      "Session A": [["Bench Press", "3 x 6-8"], ["Pull-Downs", "3 x 8-10"], ["Leg Press", "4 x 10-12"], ["Shoulder Press (DB)", "2 x 8-10"], ["Leg Curl", "3 x 10-12"], ["Overhead Triceps Extension", "2 x 10-12"], ["Plank", "2"]],
+      "Session A": [["Bench Press", "3 x 6-8"], ["Pull-Downs", "3 x 8-10"], ["Leg Press", "4 x 10-12"], ["Shoulder Press", "2 x 8-10"], ["Leg Curl", "3 x 10-12"], ["Overhead Triceps Extension", "2 x 10-12"], ["Plank", "2"]],
       "Session B": [["Low Rows", "3 x 6-8"], ["DB Bench Press", "3 x 8-10"], ["RDL", "3 x 10-12"], ["Lateral Raises", "3 x 12-15"], ["Preacher Curl (machine)", "3 x 12-15"], ["Bicycle Crunch", "2"]],
       "Session C": [["Incline Press", "3 x 8-10"], ["Cable Row", "3 x 8-10"], ["Leg Press", "4 x 10-12"], ["Calf Raises", "3 x 12-15"], ["Triceps Pushdown", "2 x 10-12"], ["Rear Delt Fly", "2 x 12-15"], ["Plank", "2"]],
     }},
