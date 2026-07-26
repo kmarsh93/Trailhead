@@ -5,12 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Trailhead</title>
 <link rel="manifest" href="manifest.json" />
-<meta name="theme-color" content="#1F2E22" />
+<meta name="theme-color" content="#0B2F1E" />
 <link rel="apple-touch-icon" href="icon-192.png" />
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Nunito+Sans:wght@400;700&display=swap" rel="stylesheet" />
 <style>
   * { box-sizing: border-box; }
-  body { margin: 0; background: #1F2E22; font-family: 'Nunito Sans', sans-serif; -webkit-tap-highlight-color: transparent; }
+  body { margin: 0; background: #0B2F1E; font-family: 'Nunito Sans', sans-serif; -webkit-tap-highlight-color: transparent; }
   input, select { font-family: 'Nunito Sans', sans-serif; }
   ::-webkit-scrollbar { display: none; }
 </style>
@@ -32,28 +32,62 @@ const PHASES = [
   { name: "Phase 2", weeks: 16, color: "#7A8F5C" },
   { name: "Phase 3", weeks: 7, color: "#8C4A2A" },
 ];
-const BASELINE = { "Bench Press": 62.5, "Pull-Downs": 54.5, "Leg Press": 75, "Shoulder Press (DB)": 45, "Leg Curl": 29, "Low Rows": 42.5, "DB Bench Press": 52, "RDL": 32, "Lateral Raises": 5.7, "Preacher Curl (machine)": 25.5, "Incline Press": 24, "Cable Row": 52, "Calf Raises": 55, "Triceps Pushdown": 16, "Hammer Curl (machine)": 23, "Dips (assisted)": 23 };
+const EXERCISE_SUBSTITUTES = {
+  "Bench Press": "No barbell? DB Bench Press or a chest press machine at a similar weight-per-side.",
+  "Pull-Downs": "No lat pulldown? Assisted pull-ups work the same pattern.",
+  "Leg Press": "No leg press? Goblet squats, or a leg extension + leg curl combo.",
+  "Shoulder Press (DB)": "No dumbbells free? Use a shoulder press machine.",
+  "Leg Curl": "No leg curl machine? Nordic curls or stability-ball hamstring curls.",
+  "Low Rows": "No cable row station? Use a chest-supported row machine.",
+  "DB Bench Press": "No dumbbells free? Use a flat bench press machine.",
+  "RDL": "No barbell free? Dumbbell RDLs — same pattern.",
+  "Lateral Raises": "No dumbbells free? Cable or machine lateral raise.",
+  "Preacher Curl (machine)": "No machine? DB preacher curls on an incline bench.",
+  "Incline Press": "No incline bench press? Incline DB press instead.",
+  "Cable Row": "No cable machine? Seated row machine or a resistance band row.",
+  "Calf Raises": "No calf machine? Standing DB calf raises on a step.",
+  "Triceps Pushdown": "No cable station? DB overhead triceps extension.",
+  "Hammer Curl (machine)": "No machine? DB hammer curls.",
+  "Dips (assisted)": "No assisted dip machine? Loop a resistance band over the bar for assistance.",
+  "Pull-Ups / Pull-Downs": "No pull-up bar free? Lat pulldown machine.",
+  "Incline DB Press": "No incline bench free? Flat DB bench press.",
+  "Chest-Supported Row": "No machine? Single-arm DB row, chest supported on an incline bench.",
+  "Shoulder Press": "No machine/barbell free? DB shoulder press.",
+  "Bulgarian Split Squat*": "No bench free for rear foot? Regular DB walking lunges instead.",
+  "Hack Squat": "No hack squat machine? Leg press (expect to load noticeably lighter) or goblet squats.",
+  "Rear Delt Fly": "No machine? Bent-over DB rear delt fly.",
+  "Overhead Triceps Extension": "No cable station? Single DB overhead triceps extension.",
+};
+const EXERCISE_ESTIMATE_FROM = {
+  "Rear Delt Fly": { from: "Lateral Raises", ratio: 0.9 },
+  "Overhead Triceps Extension": { from: "Triceps Pushdown", ratio: 0.65 },
+  "Hack Squat": { from: "Leg Press", ratio: 0.45 },
+  "Chest-Supported Row": { from: "Low Rows", ratio: 0.9 },
+  "Incline DB Press": { from: "DB Bench Press", ratio: 0.85 },
+  "Pull-Ups / Pull-Downs": { from: "Pull-Downs", ratio: 1 },
+  "Shoulder Press": { from: "Shoulder Press (DB)", ratio: 1 },
+};
 const START_WEIGHTS = { "Bench Press": 50, "Pull-Downs": 42.5, "Leg Press": 60, "Shoulder Press (DB)": 35, "Leg Curl": 22.5, "Low Rows": 35, "DB Bench Press": 40, "RDL": 25, "Lateral Raises": 4.5, "Preacher Curl (machine)": 20, "Incline Press": 20, "Cable Row": 40, "Calf Raises": 45, "Triceps Pushdown": 12.5, "Hammer Curl (machine)": 17, "Dips (assisted)": 29 };
 
 const PHASE_SESSIONS = [
   { label: "3x/week full body — A / B / C rotation", framing: "Chase progress: add weight or reps once you hit the top of the rep range with good form.", deload: "Deload every 5th week — same exercises, ~50% less volume.",
     sessions: {
-      "Session A": [["Bench Press", "3 x 6-8"], ["Pull-Downs", "3 x 8-10"], ["Leg Press", "3 x 10-12"], ["Shoulder Press (DB)", "2 x 8-10"], ["Leg Curl", "2 x 10-12"], ["Plank", "2"]],
-      "Session B": [["Low Rows", "3 x 6-8"], ["DB Bench Press", "3 x 8-10"], ["RDL", "3 x 10-12"], ["Lateral Raises", "2 x 12-15"], ["Preacher Curl (machine)", "2 x 12-15"], ["Bicycle Crunch", "2"]],
-      "Session C": [["Incline Press", "3 x 8-10"], ["Cable Row", "3 x 8-10"], ["Leg Press", "3 x 10-12"], ["Calf Raises", "2 x 12-15"], ["Triceps Pushdown", "2 x 10-12"], ["Plank", "2"]],
+      "Session A": [["Bench Press", "3 x 6-8"], ["Pull-Downs", "3 x 8-10"], ["Leg Press", "4 x 10-12"], ["Shoulder Press (DB)", "2 x 8-10"], ["Leg Curl", "3 x 10-12"], ["Overhead Triceps Extension", "2 x 10-12"], ["Plank", "2"]],
+      "Session B": [["Low Rows", "3 x 6-8"], ["DB Bench Press", "3 x 8-10"], ["RDL", "3 x 10-12"], ["Lateral Raises", "3 x 12-15"], ["Preacher Curl (machine)", "3 x 12-15"], ["Bicycle Crunch", "2"]],
+      "Session C": [["Incline Press", "3 x 8-10"], ["Cable Row", "3 x 8-10"], ["Leg Press", "4 x 10-12"], ["Calf Raises", "3 x 12-15"], ["Triceps Pushdown", "2 x 10-12"], ["Rear Delt Fly", "2 x 12-15"], ["Plank", "2"]],
     }},
   { label: "4x/week Upper / Lower split", framing: "Chase progress: this is the main muscle-building block — push loads and volume.", deload: "Deload every 5th week — same exercises, ~50% less volume.",
     sessions: {
-      "Upper A": [["Bench Press", "3 x 6-8"], ["Pull-Ups / Pull-Downs", "3 x 6-8"], ["Incline DB Press", "3 x 8-10"], ["Cable Row", "3 x 8-10"], ["Lateral Raises", "2 x 12-15"], ["Triceps Pushdown", "2 x 10-12"]],
-      "Lower A": [["Leg Press", "4 x 8-10"], ["RDL", "3 x 8-10"], ["Leg Curl", "3 x 10-12"], ["Calf Raises", "3 x 10-15"], ["Plank", "2"]],
-      "Upper B": [["Shoulder Press", "3 x 6-8"], ["Low Rows", "3 x 8-10"], ["DB Bench Press", "3 x 8-10"], ["Chest-Supported Row", "3 x 10-12"], ["Hammer Curl (machine)", "2 x 10-12"], ["Dips (assisted)", "2 x 10-12"]],
+      "Upper A": [["Bench Press", "3 x 6-8"], ["Pull-Ups / Pull-Downs", "3 x 6-8"], ["Incline DB Press", "3 x 8-10"], ["Cable Row", "3 x 8-10"], ["Lateral Raises", "3 x 12-15"], ["Triceps Pushdown", "2 x 10-12"], ["Overhead Triceps Extension", "2 x 10-12"]],
+      "Lower A": [["Hack Squat", "4 x 8-10"], ["RDL", "3 x 8-10"], ["Leg Curl", "3 x 10-12"], ["Calf Raises", "3 x 10-15"], ["Plank", "2"]],
+      "Upper B": [["Shoulder Press", "3 x 6-8"], ["Low Rows", "3 x 8-10"], ["DB Bench Press", "3 x 8-10"], ["Chest-Supported Row", "3 x 10-12"], ["Hammer Curl (machine)", "3 x 10-12"], ["Dips (assisted)", "2 x 10-12"], ["Rear Delt Fly", "2 x 12-15"]],
       "Lower B": [["Leg Press", "4 x 8-10"], ["Bulgarian Split Squat*", "3 x 10-12"], ["Leg Curl", "3 x 10-12"], ["Calf Raises", "3 x 10-15"], ["Bicycle Crunch", "2"]],
     }},
   { label: "3x/week full body — A / B / C (maintenance)", framing: "Hold, don't chase: match or hold Phase 2 end-weights. A flat or slightly-down week is expected, not a failure.", deload: "One deload around week 4 of this phase.",
     sessions: {
-      "Session A": [["Bench Press", "3 x 6-8"], ["Pull-Downs", "3 x 8-10"], ["Leg Press", "3 x 10-12"], ["Shoulder Press (DB)", "2 x 8-10"], ["Leg Curl", "2 x 10-12"], ["Plank", "2"]],
-      "Session B": [["Low Rows", "3 x 6-8"], ["DB Bench Press", "3 x 8-10"], ["RDL", "3 x 10-12"], ["Lateral Raises", "2 x 12-15"], ["Preacher Curl (machine)", "2 x 12-15"], ["Bicycle Crunch", "2"]],
-      "Session C": [["Incline Press", "3 x 8-10"], ["Cable Row", "3 x 8-10"], ["Leg Press", "3 x 10-12"], ["Calf Raises", "2 x 12-15"], ["Triceps Pushdown", "2 x 10-12"], ["Plank", "2"]],
+      "Session A": [["Bench Press", "3 x 6-8"], ["Pull-Downs", "3 x 8-10"], ["Leg Press", "4 x 10-12"], ["Shoulder Press (DB)", "2 x 8-10"], ["Leg Curl", "3 x 10-12"], ["Overhead Triceps Extension", "2 x 10-12"], ["Plank", "2"]],
+      "Session B": [["Low Rows", "3 x 6-8"], ["DB Bench Press", "3 x 8-10"], ["RDL", "3 x 10-12"], ["Lateral Raises", "3 x 12-15"], ["Preacher Curl (machine)", "3 x 12-15"], ["Bicycle Crunch", "2"]],
+      "Session C": [["Incline Press", "3 x 8-10"], ["Cable Row", "3 x 8-10"], ["Leg Press", "4 x 10-12"], ["Calf Raises", "3 x 12-15"], ["Triceps Pushdown", "2 x 10-12"], ["Rear Delt Fly", "2 x 12-15"], ["Plank", "2"]],
     }},
 ];
 const REVERSE_PROGRESS = ["Dips (assisted)"];
@@ -107,6 +141,7 @@ const ANKLE_EXERCISES = {
     { name: "Cone Drills", scheme: "3 rounds", instructions: "Set up small cones or markers. Perform lateral shuffles or a figure-8 pattern around them at a controlled, athletic pace." },
   ],
 };
+const MEAL_TYPES = ["Breakfast", "Lunch", "Dinner", "Snack"];
 const FLEXIBILITY_ROUTINE = [
   { name: "Hamstring Stretch", scheme: "2 x 30s each leg", instructions: "Seated or standing, extend one leg and hinge forward from the hips (not the lower back) until you feel a stretch behind the thigh." },
   { name: "Quad Stretch", scheme: "2 x 30s each leg", instructions: "Standing, pull one heel toward your glutes, keeping knees together and hips pushed slightly forward. Hold a wall for balance if needed." },
@@ -174,11 +209,12 @@ function isDeloadWeek(phaseIdx, weekInPhase) {
   return weekInPhase > 0 && weekInPhase % 5 === 0;
 }
 function roundHalf(x) { return Math.round(x / 2.5) * 2.5; }
-function deloadWeight(w) {
+function adjustWeight(w, factor) {
   const n = parseFloat(w);
   if (isNaN(n)) return w;
-  return roundHalf(n * 0.9);
+  return roundHalf(n * factor);
 }
+function deloadWeight(w) { return adjustWeight(w, 0.9); }
 function deloadScheme(scheme) {
   const m = scheme.match(/^(\d+)\s*x\s*(.+)$/);
   if (!m) return scheme;
@@ -192,7 +228,7 @@ const PROGRESSION_INCREMENT = {
   "Low Rows": 2.5, "DB Bench Press": 2, "RDL": 2.5, "Lateral Raises": 1, "Preacher Curl (machine)": 2,
   "Incline Press": 2.5, "Cable Row": 2.5, "Calf Raises": 2.5, "Triceps Pushdown": 1, "Hammer Curl (machine)": 1,
   "Dips (assisted)": 2.5, "Pull-Ups / Pull-Downs": 2.5, "Incline DB Press": 2, "Chest-Supported Row": 2.5,
-  "Shoulder Press": 2.5, "Bulgarian Split Squat*": 2.5,
+  "Shoulder Press": 2.5, "Bulgarian Split Squat*": 2.5, "Rear Delt Fly": 1, "Overhead Triceps Extension": 1.5, "Hack Squat": 2.5,
 };
 function parseScheme(scheme) {
   if (!scheme) return null;
@@ -269,13 +305,186 @@ function plateauCheck(sessionLogs, exerciseName) {
   const noneGold = relevant.every(r => r.level !== "gold");
   return sameWeight && noneGold ? { weight: relevant[0].weight, count: relevant.length } : null;
 }
+function currentBestWeight(sessionLogs, exerciseName) {
+  for (const s of sessionLogs) {
+    if (isDeloadForDate(s.date)) continue;
+    const found = s.exercises.find(e => e.name === exerciseName);
+    if (found && found.weight !== "") return parseFloat(found.weight);
+  }
+  return null;
+}
+function resolveExerciseBase(exerciseName, sessionLogs) {
+  let base = currentBestWeight(sessionLogs, exerciseName);
+  let estimated = false;
+  if (base == null) {
+    const est = EXERCISE_ESTIMATE_FROM[exerciseName];
+    if (!est) return null;
+    const relatedBest = currentBestWeight(sessionLogs, est.from);
+    if (relatedBest == null) return null;
+    base = relatedBest * est.ratio;
+    estimated = true;
+  }
+  return { base, estimated };
+}
+function computeExerciseTarget(exerciseName, sessionLogs, weeksToProject) {
+  const resolved = resolveExerciseBase(exerciseName, sessionLogs);
+  if (!resolved) return null;
+  const increment = PROGRESSION_INCREMENT[exerciseName] != null ? PROGRESSION_INCREMENT[exerciseName] : 2.5;
+  const steps = Math.max(1, Math.floor(weeksToProject / 2.5));
+  const raw = REVERSE_PROGRESS.includes(exerciseName) ? Math.max(0, resolved.base - steps * increment) : resolved.base + steps * increment;
+  return { value: roundHalf(raw), estimated: resolved.estimated };
+}
+function phaseSegmentInfo(phaseIdx, weekInPhase) {
+  if (phaseIdx === 2) return { segment: 0, weeksInSegment: PHASES[2].weeks };
+  const segLen = Math.ceil(PHASES[phaseIdx].weeks / 3);
+  const segment = Math.min(2, Math.floor((weekInPhase - 1) / segLen));
+  const segStart = segment * segLen + 1;
+  const segEnd = Math.min(PHASES[phaseIdx].weeks, (segment + 1) * segLen);
+  return { segment, weeksInSegment: Math.max(1, segEnd - segStart + 1) };
+}
+function isAllTimeHighAtTime(sessionLogs, exerciseName, date, weight) {
+  const w = parseFloat(weight);
+  for (const s of sessionLogs) {
+    if (isDeloadForDate(s.date) || s.date >= date) continue;
+    const found = s.exercises.find(e => e.name === exerciseName);
+    if (found && found.weight !== "") {
+      const priorMatters = REVERSE_PROGRESS.includes(exerciseName) ? parseFloat(found.weight) <= w : parseFloat(found.weight) >= w;
+      if (priorMatters) return false;
+    }
+  }
+  return true;
+}
+function computeProjection(exerciseName, sessionLogs, phaseIdx, weekInPhase) {
+  const points = [];
+  for (const s of sessionLogs) {
+    if (isDeloadForDate(s.date)) continue;
+    const found = s.exercises.find(e => e.name === exerciseName);
+    if (found && found.weight !== "") points.push({ date: s.date, weight: parseFloat(found.weight) });
+  }
+  if (points.length < 3) return null;
+  points.reverse();
+  const first = points[0], last = points[points.length - 1];
+  const weeksElapsed = weeksBetween(new Date(first.date), new Date(last.date));
+  if (weeksElapsed < 1) return null;
+  const ratePerWeek = (last.weight - first.weight) / weeksElapsed;
+  const weeksRemaining = Math.max(0, PHASES[phaseIdx].weeks - weekInPhase);
+  if (weeksRemaining === 0) return null;
+  const projected = last.weight + ratePerWeek * weeksRemaining;
+  return { value: roundHalf(Math.max(0, projected)), weeksRemaining };
+}
 
 function weeksBetween(a, b) { return Math.floor((b - a) / 6048e5); }
-function weekIndexOf(dateStr) { return weeksBetween(START_DATE, new Date(dateStr)); }
+function localDateStr(d) {
+  d = d || new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+const PHOTO_DB_NAME = "trailhead-photos";
+const PHOTO_STORE = "photos";
+function openPhotoDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(PHOTO_DB_NAME, 1);
+    req.onupgradeneeded = () => {
+      if (!req.result.objectStoreNames.contains(PHOTO_STORE)) req.result.createObjectStore(PHOTO_STORE);
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function savePhotoBlob(id, dataUrl) {
+  const db = await openPhotoDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(PHOTO_STORE, "readwrite");
+    tx.objectStore(PHOTO_STORE).put(dataUrl, id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+async function getPhotoBlob(id) {
+  const db = await openPhotoDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(PHOTO_STORE, "readonly");
+    const req = tx.objectStore(PHOTO_STORE).get(id);
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => reject(req.error);
+  });
+}
+async function deletePhotoBlob(id) {
+  const db = await openPhotoDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(PHOTO_STORE, "readwrite");
+    tx.objectStore(PHOTO_STORE).delete(id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+async function getAllPhotoBlobs() {
+  const db = await openPhotoDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(PHOTO_STORE, "readonly");
+    const result = {};
+    const req = tx.objectStore(PHOTO_STORE).openCursor();
+    req.onsuccess = e => {
+      const cursor = e.target.result;
+      if (cursor) { result[cursor.key] = cursor.value; cursor.continue(); }
+      else resolve(result);
+    };
+    req.onerror = () => reject(req.error);
+  });
+}
+async function clearAllPhotos() {
+  const db = await openPhotoDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(PHOTO_STORE, "readwrite");
+    tx.objectStore(PHOTO_STORE).clear();
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+function compressImage(file, maxDimension, quality) {
+  maxDimension = maxDimension || 900; quality = quality || 0.75;
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        let width = img.width, height = img.height;
+        if (width > height && width > maxDimension) { height = Math.round(height * (maxDimension / width)); width = maxDimension; }
+        else if (height > maxDimension) { width = Math.round(width * (maxDimension / height)); height = maxDimension; }
+        const canvas = document.createElement("canvas");
+        canvas.width = width; canvas.height = height;
+        canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.onerror = () => reject(new Error("Could not read image"));
+      img.src = e.target.result;
+    };
+    reader.onerror = () => reject(new Error("Could not read file"));
+    reader.readAsDataURL(file);
+  });
+}
+function formatMonthLabel(monthKey) {
+  const [y, m] = monthKey.split("-");
+  const months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  return months[parseInt(m, 10) - 1] + " " + y;
+}
+let SHIFT_DAYS = 0;
+function shiftedDate(base) {
+  const d = new Date(base);
+  d.setDate(d.getDate() + SHIFT_DAYS);
+  return d;
+}
+function weekIndexOf(dateStr) { return weeksBetween(shiftedDate(START_DATE), new Date(dateStr)); }
 function twoWeekCutoffStr() {
   const d = new Date();
   d.setDate(d.getDate() - 14);
-  return d.toISOString().slice(0, 10);
+  return localDateStr(d);
+}
+function sortByDateDesc(arr) {
+  return [...arr].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
 }
 function formatHeaderDate() {
   const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -290,8 +499,10 @@ function phaseForWeekIndex(wi) {
 }
 function currentWeekInfo() {
   const now = new Date();
-  const totalWeeks = weeksBetween(START_DATE, END_DATE);
-  const elapsedRaw = weeksBetween(START_DATE, now);
+  const effStart = shiftedDate(START_DATE);
+  const effEnd = shiftedDate(END_DATE);
+  const totalWeeks = weeksBetween(effStart, effEnd);
+  const elapsedRaw = weeksBetween(effStart, now);
   const elapsed = Math.max(0, Math.min(totalWeeks, elapsedRaw));
   let cursor = 0, phaseIdx = 0, weekInPhase = elapsed;
   for (let i = 0; i < PHASES.length; i++) {
@@ -303,9 +514,9 @@ function currentWeekInfo() {
 
 function getWeekDates(weekIndex) {
   return Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(START_DATE);
+    const d = shiftedDate(START_DATE);
     d.setDate(d.getDate() + weekIndex * 7 + i);
-    return d.toISOString().slice(0, 10);
+    return localDateStr(d);
   });
 }
 function runTargetForWeek(phaseIdx, weekInPhase) {
@@ -382,7 +593,7 @@ function buildTodayChecklist(phaseIdx, weekInPhase, data, todayStr) {
 }
 
 const card = { background: "#FBF4E6", color: "#2B2318", borderRadius: "16px" };
-const ink = "#F3ECD9", bg = "#1F2E22", muted = "#8FA38C", gold = "#C1622B";
+const ink = "#F3ECD9", bg = "#0B2F1E", muted = "#8FA38C", gold = "#C1622B";
 
 const SECTIONS = [
   { id: "schedule", label: "Week", icon: "Calendar" },
@@ -401,21 +612,22 @@ function loadData() {
       const migratedSleep = parsed.sleep || (parsed.stats || [])
         .filter(s => s.sleepHours || s.sleepQuality)
         .map(s => ({ date: s.date, hours: s.sleepHours || "", quality: s.sleepQuality || "" }));
-      return { stats: [], sessions: [], runs: [], ankle: { stage: 1, sessions: [] }, flexibility: [], nutrition: [], nutritionComplete: [], sleep: [], ...parsed, sleep: migratedSleep };
+      return { stats: [], sessions: [], runs: [], ankle: { stage: 1, sessions: [] }, flexibility: [], nutrition: [], nutritionComplete: [], sleep: [], dateShiftDays: 0, pause: { active: false, startDate: null }, returnAdjustment: null, savedMeals: [], lockedTargets: {}, ...parsed, sleep: migratedSleep };
     }
   } catch (e) {}
-  return { stats: [], sessions: [], runs: [], ankle: { stage: 1, sessions: [] }, flexibility: [], nutrition: [], nutritionComplete: [], sleep: [] };
+  return { stats: [], sessions: [], runs: [], ankle: { stage: 1, sessions: [] }, flexibility: [], nutrition: [], nutritionComplete: [], sleep: [], dateShiftDays: 0, pause: { active: false, startDate: null }, returnAdjustment: null, savedMeals: [], lockedTargets: {} };
 }
 function saveData(data) {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch (e) { console.error("Save failed", e); }
 }
 
-function Timeline({ data, onPhaseClick }) {
+function Timeline({ data, onPhaseClick, onPause, onResume }) {
   const { totalWeeks, elapsed, phaseIdx } = currentWeekInfo();
   const pct = Math.min(100, (elapsed / totalWeeks) * 100);
   const target = PHASE_TARGET[phaseIdx];
   const startWeight = PHASE_START_WEIGHT[phaseIdx];
   const latest = data.stats[0] ? parseFloat(data.stats[0].weight) : null;
+  const paused = data.pause && data.pause.active;
   let goalPct = null, remaining = null;
   if (latest != null) {
     if (phaseIdx === 1) {
@@ -427,12 +639,24 @@ function Timeline({ data, onPhaseClick }) {
     }
     goalPct = Math.max(0, Math.min(100, goalPct));
   }
+  if (paused) {
+    const daysSoFar = Math.max(0, Math.round((new Date(localDateStr()) - new Date(data.pause.startDate)) / 86400000));
+    return (
+      <div style={{ padding: "20px 18px 14px" }}>
+        <div style={{ ...card, padding: "12px 14px", background: "#3A2E1E", border: "1px solid #8C4A2A" }}>
+          <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 15, fontWeight: 700, color: "#F3ECD9", marginBottom: 3 }}>Program paused</div>
+          <div style={{ fontSize: 11.5, color: "#C9BFA8", marginBottom: 10 }}>Since {data.pause.startDate} · {daysSoFar} {daysSoFar === 1 ? "day" : "days"} so far. Nothing counts as missed while paused.</div>
+          <button onClick={onResume} style={{ width: "100%", padding: "9px 0", borderRadius: 8, border: "none", background: gold, color: "#201B10", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>Resume program</button>
+        </div>
+      </div>
+    );
+  }
   return (
     <div style={{ padding: "20px 18px 14px" }}>
       <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, letterSpacing: "0.12em", color: muted, textTransform: "uppercase", marginBottom: 6 }}>
         Week {elapsed + 1} of {totalWeeks} · {PHASES[phaseIdx].name}
       </div>
-      <div style={{ position: "relative", height: 6, background: "#2E3F31", borderRadius: 10, marginBottom: 8 }}>
+      <div style={{ position: "relative", height: 6, background: "#1E4433", borderRadius: 10, marginBottom: 8 }}>
         <div style={{ position: "absolute", left: 0, top: 0, height: "100%", width: pct + "%", background: gold, borderRadius: 10 }} />
         {[17, 33].map((w, i) => <div key={i} style={{ position: "absolute", left: (w/totalWeeks*100) + "%", top: -3, width: 2, height: 12, background: bg }} />)}
       </div>
@@ -444,14 +668,17 @@ function Timeline({ data, onPhaseClick }) {
           </button>
         ))}
       </div>
-      <div style={{ fontSize: 9.5, color: "#5A6B54", fontStyle: "italic", marginBottom: latest != null ? 10 : 0 }}>Tap a phase for details</div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: latest != null ? 10 : 0 }}>
+        <div style={{ fontSize: 9.5, color: "#5A6B54", fontStyle: "italic" }}>Tap a phase for details</div>
+        <button onClick={onPause} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontSize: 9.5, color: "#5A6B54", textDecoration: "underline" }}>Going away? Pause</button>
+      </div>
       {latest != null && (
         <div>
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10.5, color: muted, marginBottom: 3 }}>
             <span>{latest}kg → {target.weight}kg</span>
             <span>{remaining > 0.05 ? remaining.toFixed(1) + "kg to go" : "Target reached"}</span>
           </div>
-          <div style={{ position: "relative", height: 5, background: "#2E3F31", borderRadius: 8 }}>
+          <div style={{ position: "relative", height: 5, background: "#1E4433", borderRadius: 8 }}>
             <div style={{ position: "absolute", left: 0, top: 0, height: "100%", width: goalPct + "%", background: "#7A8F5C", borderRadius: 8 }} />
           </div>
         </div>
@@ -524,7 +751,7 @@ function Entry({ children, onDelete, onEdit }) {
       {(onDelete || onEdit) && (
         <div style={{ position: "absolute", top: 8, right: 8, display: "flex", gap: 6 }}>
           {onEdit && <button onClick={onEdit} style={{ background: "none", border: "none", cursor: "pointer", color: "#6B6F63", display: "flex" }}><Icon name="Pencil" size={13} /></button>}
-          {onDelete && <button onClick={onDelete} style={{ background: "none", border: "none", cursor: "pointer", color: "#6B6F63", display: "flex" }}><Icon name="X" size={14} /></button>}
+          {onDelete && <button onClick={() => { if (window.confirm("Delete this entry? This can't be undone.")) onDelete(); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#6B6F63", display: "flex" }}><Icon name="X" size={14} /></button>}
         </div>
       )}
       {children}
@@ -583,41 +810,123 @@ function ShowMoreButton({ remaining, onClick }) {
   );
 }
 
-function MiniChart({ data, baseline }) {
+function PhotoJourney({ stats }) {
+  const [photos, setPhotos] = useState({});
+  const [loading, setLoading] = useState(true);
+  const entries = useMemo(
+    () => stats.filter(s => s.photoIds && (s.photoIds.front || s.photoIds.side)).slice().sort((a, b) => a.date.localeCompare(b.date)),
+    [stats]
+  );
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const ids = [];
+      entries.forEach(e => { if (e.photoIds.front) ids.push(e.photoIds.front); if (e.photoIds.side) ids.push(e.photoIds.side); });
+      const loaded = {};
+      for (const id of ids) {
+        try { loaded[id] = await getPhotoBlob(id); } catch (err) {}
+      }
+      if (!cancelled) { setPhotos(loaded); setLoading(false); }
+    })();
+    return () => { cancelled = true; };
+  }, [entries]);
+  if (entries.length === 0) return <EmptyState text="No progress photos yet. Add a front and/or side photo next time you log a weigh-in." />;
+  if (loading) return <div style={{ fontSize: 12.5, color: "#8A7B5C", fontStyle: "italic" }}>Loading photos…</div>;
+  return (
+    <div>
+      <div style={{ fontSize: 11, color: "#6B6F63", marginBottom: 8 }}>{entries.length} {entries.length === 1 ? "checkpoint" : "checkpoints"} — scroll to see your journey</div>
+      <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 8, WebkitOverflowScrolling: "touch" }}>
+        {entries.map((e, i) => (
+          <div key={i} style={{ flex: "0 0 auto", width: 108 }}>
+            <div style={{ ...card, padding: 6 }}>
+              {e.photoIds.front && photos[e.photoIds.front] ? (
+                <img src={photos[e.photoIds.front]} alt="" style={{ width: "100%", borderRadius: 6, display: "block", marginBottom: e.photoIds.side ? 4 : 0 }} />
+              ) : e.photoIds.front ? (
+                <div style={{ width: "100%", height: 96, borderRadius: 6, background: "#E4DFD1", marginBottom: e.photoIds.side ? 4 : 0 }} />
+              ) : null}
+              {e.photoIds.side && photos[e.photoIds.side] ? (
+                <img src={photos[e.photoIds.side]} alt="" style={{ width: "100%", borderRadius: 6, display: "block" }} />
+              ) : e.photoIds.side ? (
+                <div style={{ width: "100%", height: 96, borderRadius: 6, background: "#E4DFD1" }} />
+              ) : null}
+            </div>
+            <div style={{ fontSize: 10, color: "#8A7B5C", textAlign: "center", marginTop: 4 }}>{e.date}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+function MiniChart({ data, baseline, unit }) {
   if (data.length < 2) return <EmptyState text="Log at least twice to see a trend." />;
-  const w = 300, h = 120, pad = 24;
+  const w = 300, h = 140, padTop = 22, padBottom = 18, padLeft = 34, padRight = 10;
   const values = data.map(d => d.value);
   const min = Math.min(...values, baseline != null ? baseline : Infinity) - 2;
   const max = Math.max(...values, baseline != null ? baseline : -Infinity) + 2;
-  const x = i => pad + (i / (data.length - 1)) * (w - pad * 2);
-  const y = v => h - pad - ((v - min) / (max - min || 1)) * (h - pad * 2);
+  const x = i => padLeft + (i / (data.length - 1)) * (w - padLeft - padRight);
+  const y = v => (h - padBottom) - ((v - min) / (max - min || 1)) * (h - padTop - padBottom);
   const points = data.map((d, i) => x(i) + "," + y(d.value)).join(" ");
+  const lastIdx = data.length - 1;
+  const mid = (min + max) / 2;
+  const u = unit || "";
   return (
     <svg width="100%" viewBox={"0 0 " + w + " " + h}>
-      {baseline != null && <line x1={pad} x2={w-pad} y1={y(baseline)} y2={y(baseline)} stroke="#8C4A2A" strokeDasharray="4 4" strokeWidth="1" />}
+      {[min + 2, mid, max - 2].map((v, i) => (
+        <text key={i} x={padLeft - 6} y={y(v) + 3} fontSize="8" fill={muted} textAnchor="end">{Math.round(v * 10) / 10}</text>
+      ))}
+      {baseline != null && (
+        <>
+          <line x1={padLeft} x2={w - padRight} y1={y(baseline)} y2={y(baseline)} stroke="#8C4A2A" strokeDasharray="4 4" strokeWidth="1" />
+          <text x={w - padRight} y={y(baseline) - 4} fontSize="9" fill="#8C4A2A" fontWeight="700" textAnchor="end">{"Target " + baseline + u}</text>
+        </>
+      )}
       <polyline points={points} fill="none" stroke={gold} strokeWidth="2" />
       {data.map((d, i) => <circle key={i} cx={x(i)} cy={y(d.value)} r="3" fill={gold} />)}
-      {data.map((d, i) => (i === 0 || i === data.length - 1) &&
-        <text key={i} x={x(i)} y={h - 6} fontSize="9" fill={muted} textAnchor={i === 0 ? "start" : "end"}>{d.date}</text>)}
+      <text x={x(lastIdx)} y={y(data[lastIdx].value) - 9} fontSize="11" fontWeight="700" fill={gold} textAnchor="middle">{data[lastIdx].value + u}</text>
+      {data.map((d, i) => (i === 0 || i === lastIdx) &&
+        <text key={i} x={x(i)} y={h - 4} fontSize="9" fill={muted} textAnchor={i === 0 ? "start" : "end"}>{d.date}</text>)}
     </svg>
   );
 }
-function ExerciseMiniChart({ data, baseline }) {
-  if (data.length < 2) return <EmptyState text="Log this exercise at least twice to see a trend." />;
-  const w = 300, h = 120, pad = 24;
+function ExerciseMiniChart({ data, target, isPR }) {
+  if (data.length < 2) {
+    return (
+      <>
+        <EmptyState text="Log this exercise at least twice to see a trend." />
+        {target && (
+          <div style={{ fontSize: 10.5, color: "#6B6F63", marginTop: 6 }}>
+            {target.hold ? "Hold" : "Target"}: <strong style={{ color: "#4A4D42" }}>{target.value}kg</strong>{target.estimated ? " (estimated from a related exercise)" : ""}
+          </div>
+        )}
+      </>
+    );
+  }
+  const baseline = target ? target.value : null;
+  const w = 300, h = 140, padTop = 22, padBottom = 18, padLeft = 34, padRight = 10;
   const values = data.map(d => d.weight);
   const min = Math.min(...values, baseline || Infinity) - 2;
   const max = Math.max(...values, baseline || -Infinity) + 2;
-  const x = i => pad + (i / (data.length - 1)) * (w - pad * 2);
-  const y = v => h - pad - ((v - min) / (max - min || 1)) * (h - pad * 2);
+  const x = i => padLeft + (i / (data.length - 1)) * (w - padLeft - padRight);
+  const y = v => (h - padBottom) - ((v - min) / (max - min || 1)) * (h - padTop - padBottom);
   const points = data.map((d, i) => x(i) + "," + y(d.weight)).join(" ");
+  const lastIdx = data.length - 1;
+  const mid = (min + max) / 2;
   return (
     <svg width="100%" viewBox={"0 0 " + w + " " + h}>
-      {baseline && <line x1={pad} x2={w-pad} y1={y(baseline)} y2={y(baseline)} stroke="#8C4A2A" strokeDasharray="4 4" strokeWidth="1" />}
+      {[min + 2, mid, max - 2].map((v, i) => (
+        <text key={i} x={padLeft - 6} y={y(v) + 3} fontSize="8" fill={muted} textAnchor="end">{Math.round(v * 10) / 10}</text>
+      ))}
+      {baseline && (
+        <>
+          <line x1={padLeft} x2={w - padRight} y1={y(baseline)} y2={y(baseline)} stroke="#8C4A2A" strokeDasharray="4 4" strokeWidth="1" />
+          <text x={w - padRight} y={y(baseline) - 4} fontSize="9" fill="#8C4A2A" fontWeight="700" textAnchor="end">{(target.hold ? "Hold " : "Target ") + baseline + "kg" + (target.estimated ? " (est.)" : "")}</text>
+        </>
+      )}
       <polyline points={points} fill="none" stroke={gold} strokeWidth="2" />
       {data.map((d, i) => <circle key={i} cx={x(i)} cy={y(d.weight)} r="3" fill={gold} />)}
-      {data.map((d, i) => (i === 0 || i === data.length - 1) &&
-        <text key={i} x={x(i)} y={h - 6} fontSize="9" fill={muted} textAnchor={i === 0 ? "start" : "end"}>{d.date}</text>)}
+      <text x={x(lastIdx)} y={y(data[lastIdx].weight) - 9} fontSize="11" fontWeight="700" fill={gold} textAnchor="middle">{(isPR ? "★ " : "") + data[lastIdx].weight + "kg"}</text>
+      {data.map((d, i) => (i === 0 || i === lastIdx) &&
+        <text key={i} x={x(i)} y={h - 4} fontSize="9" fill={muted} textAnchor={i === 0 ? "start" : "end"}>{d.date}</text>)}
     </svg>
   );
 }
@@ -633,12 +942,65 @@ function bestPriorWeight(sessionLogs, exerciseName) {
 function FormShell({ children }) { return <div style={{ ...card, padding: 14, marginBottom: 14 }}>{children}</div>; }
 function FieldRow({ children }) { return <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>{children}</div>; }
 const inputStyle = { flex: 1, minWidth: 0, padding: "8px 10px", borderRadius: 6, border: "1px solid #D8D2C2", fontSize: 13, background: "#FCFAF4" };
-const submitStyle = { background: "#1F2E22", color: "#F3ECD9", border: "none", borderRadius: 6, padding: "9px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer" };
+const submitStyle = { background: "#0B2F1E", color: "#F3ECD9", border: "none", borderRadius: 6, padding: "9px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer" };
 
-function BodyForm({ onSubmit }) {
-  const [weight, setWeight] = useState(""), [waist, setWaist] = useState(""), [bf, setBf] = useState("");
+function DateField({ date, setDate }) {
+  const todayStr = localDateStr();
+  const y = new Date();
+  y.setDate(y.getDate() - 1);
+  const yesterdayStr = localDateStr(y);
+  const quickBtn = active => ({
+    flex: 1, padding: "7px 0", borderRadius: 6, border: "none", cursor: "pointer",
+    background: active ? gold : "#E4DFD1", color: active ? "#201B10" : "#6B6F63", fontWeight: 700, fontSize: 12,
+  });
+  return (
+    <div style={{ marginBottom: 10 }}>
+      <div style={{ fontSize: 11, color: "#6B6F63", marginBottom: 4 }}>Date</div>
+      <div style={{ display: "flex", gap: 6 }}>
+        <button type="button" onClick={() => setDate(todayStr)} style={quickBtn(date === todayStr)}>Today</button>
+        <button type="button" onClick={() => setDate(yesterdayStr)} style={quickBtn(date === yesterdayStr)}>Yesterday</button>
+        <input type="date" value={date} max={todayStr} onChange={e => setDate(e.target.value)} style={{ ...inputStyle, flex: 1.3 }} />
+      </div>
+    </div>
+  );
+}
+
+function BodyForm({ onSubmit, initial }) {
+  const [weight, setWeight] = useState(initial ? initial.weight : ""), [waist, setWaist] = useState(initial ? initial.waist : ""), [bf, setBf] = useState(initial ? initial.bf : "");
+  const [date, setDate] = useState(initial ? initial.date : localDateStr());
+  const [frontPreview, setFrontPreview] = useState(null);
+  const [sidePreview, setSidePreview] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const hasExistingFront = initial && initial.photoIds && initial.photoIds.front;
+  const hasExistingSide = initial && initial.photoIds && initial.photoIds.side;
+  const handlePhoto = async (file, setter) => {
+    if (!file) return;
+    try { setter(await compressImage(file)); } catch (e) { console.error("Photo processing failed", e); }
+  };
+  const submit = async () => {
+    if (!weight || !waist || saving) return;
+    setSaving(true);
+    const photoIds = Object.assign({}, initial && initial.photoIds);
+    try {
+      if (frontPreview) {
+        const id = "photo-" + Date.now() + "-front";
+        await savePhotoBlob(id, frontPreview);
+        if (hasExistingFront) deletePhotoBlob(initial.photoIds.front).catch(() => {});
+        photoIds.front = id;
+      }
+      if (sidePreview) {
+        const id = "photo-" + Date.now() + "-side";
+        await savePhotoBlob(id, sidePreview);
+        if (hasExistingSide) deletePhotoBlob(initial.photoIds.side).catch(() => {});
+        photoIds.side = id;
+      }
+    } catch (e) { console.error("Photo save failed", e); }
+    onSubmit({ weight, waist, bf, date, photoIds: (photoIds.front || photoIds.side) ? photoIds : undefined });
+    setSaving(false);
+  };
   return (
     <FormShell>
+      <DateField date={date} setDate={setDate} />
       <FieldRow>
         <input style={inputStyle} placeholder="Weight (kg)" value={weight} onChange={e => setWeight(e.target.value)} />
         <input style={inputStyle} placeholder="Waist (cm)" value={waist} onChange={e => setWaist(e.target.value)} />
@@ -646,15 +1008,28 @@ function BodyForm({ onSubmit }) {
       <FieldRow>
         <input style={inputStyle} placeholder="Body fat % (optional)" value={bf} onChange={e => setBf(e.target.value)} />
       </FieldRow>
-      <button style={submitStyle} onClick={() => weight && waist && onSubmit({ weight, waist, bf })}>Save entry</button>
+      <div style={{ fontSize: 11, color: "#6B6F63", marginTop: 4, marginBottom: 6 }}>Progress photos (optional)</div>
+      <FieldRow>
+        <label style={{ ...inputStyle, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", textAlign: "center", padding: "8px 4px" }}>
+          {frontPreview ? <img src={frontPreview} style={{ height: 32, borderRadius: 4 }} alt="" /> : (hasExistingFront ? "Front ✓ (tap to replace)" : "+ Front photo")}
+          <input type="file" accept="image/*" capture="environment" style={{ display: "none" }} onChange={e => handlePhoto(e.target.files[0], setFrontPreview)} />
+        </label>
+        <label style={{ ...inputStyle, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", textAlign: "center", padding: "8px 4px" }}>
+          {sidePreview ? <img src={sidePreview} style={{ height: 32, borderRadius: 4 }} alt="" /> : (hasExistingSide ? "Side ✓ (tap to replace)" : "+ Side photo")}
+          <input type="file" accept="image/*" capture="environment" style={{ display: "none" }} onChange={e => handlePhoto(e.target.files[0], setSidePreview)} />
+        </label>
+      </FieldRow>
+      <button style={submitStyle} onClick={submit} disabled={saving}>{saving ? "Saving…" : (initial ? "Save changes" : "Save entry")}</button>
     </FormShell>
   );
 }
 
-function SleepForm({ onSubmit }) {
-  const [hours, setHours] = useState(""), [quality, setQuality] = useState("");
+function SleepForm({ onSubmit, initial }) {
+  const [hours, setHours] = useState(initial ? initial.hours : ""), [quality, setQuality] = useState(initial ? initial.quality : "");
+  const [date, setDate] = useState(initial ? initial.date : localDateStr());
   return (
     <FormShell>
+      <DateField date={date} setDate={setDate} />
       <FieldRow>
         <input style={inputStyle} placeholder="Hours slept" value={hours} onChange={e => setHours(e.target.value)} />
       </FieldRow>
@@ -670,15 +1045,22 @@ function SleepForm({ onSubmit }) {
           ))}
         </div>
       </div>
-      <button style={submitStyle} onClick={() => hours && onSubmit({ hours, quality })}>Save entry</button>
+      <button style={submitStyle} onClick={() => hours && onSubmit({ hours, quality, date })}>{initial ? "Save changes" : "Save entry"}</button>
     </FormShell>
   );
 }
 
-function SessionForm({ sessions, priorSessions, initial, isDeload, onSubmit }) {
+function SessionForm({ sessions, phaseIdx, weekInPhase, priorSessions, initial, isDeload, returnAdjustment, onSubmit }) {
   const names = Object.keys(sessions);
-  const [sessionName, setSessionName] = useState(initial ? initial.sessionName : names[0]);
+  const [sessionName, setSessionName] = useState(() => {
+    if (initial) return initial.sessionName;
+    const template = weekTemplate(phaseIdx, weekInPhase);
+    const todayName = DAY_NAMES[(new Date().getDay() + 6) % 7];
+    const info = template[todayName];
+    return names.find(n => info.activity.includes(n)) || names[0];
+  });
   const [rows, setRows] = useState({});
+  const [date, setDate] = useState(initial ? initial.date : localDateStr());
   useEffect(() => {
     const exercises = sessions[sessionName] || sessions[names[0]];
     const init = {};
@@ -688,7 +1070,9 @@ function SessionForm({ sessions, priorSessions, initial, isDeload, onSubmit }) {
       if (existing) { init[name] = { weight: existing.weight, reps: existing.reps, bumped: false }; }
       else {
         const { weight: prior, level } = bestPriorEntry(priorSessions, name);
-        if (isDeload && prior !== "") {
+        if (returnAdjustment && prior !== "") {
+          init[name] = { weight: adjustWeight(prior, returnAdjustment.factor), reps: "", bumped: false, returning: true };
+        } else if (isDeload && prior !== "") {
           init[name] = { weight: deloadWeight(prior), reps: "", bumped: false };
         } else if (level === "gold" && prior !== "") {
           init[name] = { weight: suggestedNextWeight(name, prior, level), reps: "", bumped: true, priorWeight: prior };
@@ -702,18 +1086,24 @@ function SessionForm({ sessions, priorSessions, initial, isDeload, onSubmit }) {
   const updateRow = (name, field, value) => setRows(r => ({ ...r, [name]: { ...r[name], [field]: value, bumped: field === "weight" ? false : r[name]?.bumped } }));
   const submit = () => {
     const exercises = Object.entries(rows).filter(([, v]) => v.weight !== "" || v.reps !== "").map(([name, v]) => ({ name, weight: v.weight, reps: v.reps }));
-    if (exercises.length) onSubmit(sessionName, exercises);
+    if (exercises.length) onSubmit(sessionName, exercises, date);
   };
   return (
     <FormShell>
-      {isDeload && <div style={{ fontSize: 11.5, color: "#8C4A2A", fontStyle: "italic", marginBottom: 10 }}>Deload week — weights pre-filled at ~90% of last logged, sets roughly halved.</div>}
+      <DateField date={date} setDate={setDate} />
+      {returnAdjustment && (
+        <div style={{ fontSize: 11.5, color: "#8C4A2A", fontStyle: "italic", marginBottom: 10 }}>
+          Welcome back — {returnAdjustment.daysPaused} days off. Weights pre-filled at {Math.round(returnAdjustment.factor * 100)}% of last logged to ease back in.
+        </div>
+      )}
+      {!returnAdjustment && isDeload && <div style={{ fontSize: 11.5, color: "#8C4A2A", fontStyle: "italic", marginBottom: 10 }}>Deload week — weights pre-filled at ~90% of last logged, sets roughly halved.</div>}
       <select style={{ ...inputStyle, marginBottom: 10, width: "100%" }} value={sessionName} onChange={e => setSessionName(e.target.value)}>
         {names.map(n => <option key={n} value={n}>{n}</option>)}
       </select>
       {sessions[sessionName].filter(([n]) => n !== "Plank" && n !== "Bicycle Crunch").map(([name, scheme]) => (
         <div key={name} style={{ marginBottom: 8 }}>
           <div style={{ fontSize: 11.5, color: "#4A4D42", marginBottom: 3, display: "flex", justifyContent: "space-between" }}>
-            <span>{name}</span><span style={{ color: "#9A9C8E" }}>{isDeload ? deloadScheme(scheme) : scheme}</span>
+            <span>{name}</span><span style={{ color: "#9A9C8E" }}>{isDeload && !returnAdjustment ? deloadScheme(scheme) : scheme}</span>
           </div>
           <FieldRow>
             <input style={inputStyle} placeholder="Weight (kg)" value={rows[name]?.weight ?? ""} onChange={e => updateRow(name, "weight", e.target.value)} />
@@ -729,10 +1119,12 @@ function SessionForm({ sessions, priorSessions, initial, isDeload, onSubmit }) {
   );
 }
 
-function RunForm({ onSubmit }) {
-  const [distance, setDistance] = useState(""), [duration, setDuration] = useState(""), [continuous, setContinuous] = useState(false);
+function RunForm({ onSubmit, initial }) {
+  const [distance, setDistance] = useState(initial ? initial.distance : ""), [duration, setDuration] = useState(initial ? initial.duration : ""), [continuous, setContinuous] = useState(initial ? initial.continuous : false);
+  const [date, setDate] = useState(initial ? initial.date : localDateStr());
   return (
     <FormShell>
+      <DateField date={date} setDate={setDate} />
       <FieldRow>
         <input style={inputStyle} placeholder="Distance (km)" value={distance} onChange={e => setDistance(e.target.value)} />
         <input style={inputStyle} placeholder="Duration (min)" value={duration} onChange={e => setDuration(e.target.value)} />
@@ -740,22 +1132,29 @@ function RunForm({ onSubmit }) {
       <label style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8, fontSize: 12, color: "#4A4D42" }}>
         <input type="checkbox" checked={continuous} onChange={e => setContinuous(e.target.checked)} /> Uninterrupted run (no walk breaks)
       </label>
-      <button style={submitStyle} onClick={() => distance && duration && onSubmit({ distance, duration, continuous })}>Save entry</button>
+      <button style={submitStyle} onClick={() => distance && duration && onSubmit({ distance, duration, continuous, date })}>{initial ? "Save changes" : "Save entry"}</button>
     </FormShell>
   );
 }
 
-function ExerciseChecklist({ exercises, onSubmit, submitLabel }) {
-  const [checked, setChecked] = useState({});
+function ExerciseChecklist({ exercises, onSubmit, submitLabel, initial, onCancel }) {
+  const [checked, setChecked] = useState(() => {
+    if (!initial) return {};
+    const c = {};
+    initial.exercises.forEach(name => { c[name] = true; });
+    return c;
+  });
   const [openInfo, setOpenInfo] = useState(null);
-  useEffect(() => { setChecked({}); setOpenInfo(null); }, [exercises]);
+  const [date, setDate] = useState(initial ? initial.date : localDateStr());
+  useEffect(() => { if (!initial) { setChecked({}); setOpenInfo(null); } }, [exercises]);
   const toggle = name => setChecked(c => ({ ...c, [name]: !c[name] }));
   const submit = () => {
     const done = exercises.filter(ex => checked[ex.name]).map(ex => ex.name);
-    if (done.length) onSubmit(done);
+    if (done.length) onSubmit(done, date);
   };
   return (
     <FormShell>
+      <DateField date={date} setDate={setDate} />
       {exercises.map(ex => (
         <div key={ex.name} style={{ marginBottom: 10, paddingBottom: 10, borderBottom: "1px solid #E2DCCB" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -770,24 +1169,88 @@ function ExerciseChecklist({ exercises, onSubmit, submitLabel }) {
         </div>
       ))}
       <button style={{ ...submitStyle, width: "100%" }} onClick={submit}>{submitLabel}</button>
+      {initial && onCancel && (
+        <button onClick={onCancel} style={{ width: "100%", background: "none", border: "none", color: "#8C4A2A", fontSize: 12, marginTop: 8, cursor: "pointer" }}>Cancel edit</button>
+      )}
     </FormShell>
   );
 }
 
-function MealForm({ onSubmit }) {
-  const [meal, setMeal] = useState(""), [kcal, setKcal] = useState(""), [protein, setProtein] = useState(""), [fat, setFat] = useState(""), [carbs, setCarbs] = useState("");
+function MealForm({ onSubmit, initial, savedMeals, onDeleteSavedMeal }) {
+  const [type, setType] = useState(initial ? initial.type || null : null);
+  const [meal, setMeal] = useState(initial ? initial.meal : ""), [kcal, setKcal] = useState(initial ? String(initial.kcal) : ""), [protein, setProtein] = useState(initial ? String(initial.protein) : ""), [fat, setFat] = useState(initial ? String(initial.fat) : ""), [carbs, setCarbs] = useState(initial ? String(initial.carbs) : "");
+  const [date, setDate] = useState(initial ? initial.date : localDateStr());
+  const [saveAsPreset, setSaveAsPreset] = useState(false);
+  const [mealSearch, setMealSearch] = useState("");
+  const quickFill = p => { setMeal(p.name); setKcal(String(p.kcal)); setProtein(String(p.protein)); setFat(String(p.fat)); setCarbs(String(p.carbs)); };
+  const submit = () => {
+    if (!kcal || !type) return;
+    const entry = { meal, type, kcal: Number(kcal), protein: Number(protein)||0, fat: Number(fat)||0, carbs: Number(carbs)||0, date };
+    const preset = (saveAsPreset && meal.trim()) ? { id: Date.now().toString(), type, name: meal.trim(), kcal: entry.kcal, protein: entry.protein, fat: entry.fat, carbs: entry.carbs } : null;
+    onSubmit(entry, preset);
+  };
+  const typeMeals = type ? (savedMeals || []).filter(p => p.type === type) : [];
+  const visibleMeals = mealSearch.trim() ? typeMeals.filter(p => p.name.toLowerCase().includes(mealSearch.trim().toLowerCase())) : typeMeals;
   return (
     <FormShell>
-      <input style={{ ...inputStyle, width: "100%", marginBottom: 8 }} placeholder="Meal (e.g. Breakfast, Snack — optional)" value={meal} onChange={e => setMeal(e.target.value)} />
-      <FieldRow>
-        <input style={inputStyle} placeholder="Calories" value={kcal} onChange={e => setKcal(e.target.value)} />
-        <input style={inputStyle} placeholder="Protein (g)" value={protein} onChange={e => setProtein(e.target.value)} />
-      </FieldRow>
-      <FieldRow>
-        <input style={inputStyle} placeholder="Fat (g)" value={fat} onChange={e => setFat(e.target.value)} />
-        <input style={inputStyle} placeholder="Carbs (g)" value={carbs} onChange={e => setCarbs(e.target.value)} />
-      </FieldRow>
-      <button style={submitStyle} onClick={() => kcal && onSubmit({ meal, kcal: Number(kcal), protein: Number(protein)||0, fat: Number(fat)||0, carbs: Number(carbs)||0 })}>Add meal</button>
+      <DateField date={date} setDate={setDate} />
+      {!type ? (
+        <div style={{ marginBottom: 8 }}>
+          <div style={{ fontSize: 11, color: "#6B6F63", marginBottom: 6 }}>What kind of meal?</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            {MEAL_TYPES.map(t => (
+              <button key={t} type="button" onClick={() => setType(t)}
+                style={{ padding: "12px 0", borderRadius: 8, border: "none", cursor: "pointer", background: "#E4DFD1", color: "#2B2318", fontWeight: 700, fontSize: 13 }}>
+                {t}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+            <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 15, fontWeight: 700 }}>{type}</span>
+            <button type="button" onClick={() => setType(null)} style={{ background: "none", border: "none", color: "#8C4A2A", fontSize: 11.5, cursor: "pointer" }}>Change type</button>
+          </div>
+          {!initial && typeMeals.length > 0 && (
+            <div style={{ marginBottom: 10 }}>
+              <div style={{ fontSize: 11, color: "#6B6F63", marginBottom: 4 }}>Saved meals</div>
+              <input style={{ ...inputStyle, width: "100%", marginBottom: 6 }} placeholder="Search saved meals…" value={mealSearch} onChange={e => setMealSearch(e.target.value)} />
+              {visibleMeals.length === 0 ? (
+                <div style={{ fontSize: 11.5, color: "#8A7B5C", fontStyle: "italic", padding: "4px 2px" }}>No matches.</div>
+              ) : (
+                <div style={{ maxHeight: 180, overflowY: "auto" }}>
+                  {visibleMeals.map(p => (
+                    <div key={p.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#F3ECD9", borderRadius: 8, padding: "7px 8px", marginBottom: 5 }}>
+                      <button type="button" onClick={() => quickFill(p)} style={{ flex: 1, textAlign: "left", background: "none", border: "none", cursor: "pointer" }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: "#2B2318" }}>{p.name}</div>
+                        <div style={{ fontSize: 10.5, color: "#6B6F63" }}>{p.kcal} kcal · {p.protein}g P · {p.fat}g F · {p.carbs}g C</div>
+                      </button>
+                      <button type="button" onClick={() => onDeleteSavedMeal(p.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "#8A7B5C", display: "flex", padding: 6 }}><Icon name="X" size={12} /></button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          <input style={{ ...inputStyle, width: "100%", marginBottom: 8 }} placeholder="Name (optional, e.g. Oats + protein)" value={meal} onChange={e => setMeal(e.target.value)} />
+          <FieldRow>
+            <input style={inputStyle} placeholder="Calories" value={kcal} onChange={e => setKcal(e.target.value)} />
+            <input style={inputStyle} placeholder="Protein (g)" value={protein} onChange={e => setProtein(e.target.value)} />
+          </FieldRow>
+          <FieldRow>
+            <input style={inputStyle} placeholder="Fat (g)" value={fat} onChange={e => setFat(e.target.value)} />
+            <input style={inputStyle} placeholder="Carbs (g)" value={carbs} onChange={e => setCarbs(e.target.value)} />
+          </FieldRow>
+          {!initial && (
+            <label style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8, fontSize: 12, color: "#4A4D42" }}>
+              <input type="checkbox" checked={saveAsPreset} onChange={e => setSaveAsPreset(e.target.checked)} />
+              Save as a quick-add meal for next time
+            </label>
+          )}
+          <button style={submitStyle} onClick={submit}>{initial ? "Save changes" : "Add meal"}</button>
+        </>
+      )}
     </FormShell>
   );
 }
@@ -836,41 +1299,103 @@ function App() {
   const [statsExtra, setStatsExtra] = useState(0);
   const [sleepExtra, setSleepExtra] = useState(0);
   const [runsExtra, setRunsExtra] = useState(0);
-  const [pastDaysExtra, setPastDaysExtra] = useState(0);
   const [editingSessionIdx, setEditingSessionIdx] = useState(null);
+  const [editingRunIdx, setEditingRunIdx] = useState(null);
+  const [editingAnkleIdx, setEditingAnkleIdx] = useState(null);
+  const [editingFlexIdx, setEditingFlexIdx] = useState(null);
+  const [editingMealIdx, setEditingMealIdx] = useState(null);
+  const [editingStatIdx, setEditingStatIdx] = useState(null);
+  const [editingSleepIdx, setEditingSleepIdx] = useState(null);
+  const [expandedDays, setExpandedDays] = useState({});
+  const [expandedMonths, setExpandedMonths] = useState({});
+  const [expandedSubs, setExpandedSubs] = useState({});
+
+  useEffect(() => {
+    setShowForm(null);
+    setEditingSessionIdx(null);
+    setEditingRunIdx(null);
+    setEditingAnkleIdx(null);
+    setEditingFlexIdx(null);
+    setEditingMealIdx(null);
+    setEditingStatIdx(null);
+    setEditingSleepIdx(null);
+  }, [tab]);
   const [chartExercise, setChartExercise] = useState(null);
   const fileInputRef = useRef(null);
+  SHIFT_DAYS = data.dateShiftDays || 0;
   const { phaseIdx, weekInPhase, elapsed, elapsedRaw } = currentWeekInfo();
   const currentSessions = PHASE_SESSIONS[phaseIdx].sessions;
   const deloadActive = isDeloadWeek(phaseIdx, weekInPhase);
 
   const persist = useCallback(next => { setData(next); saveData(next); }, []);
-  const addStat = entry => persist({ ...data, stats: [{ ...entry, date: new Date().toISOString().slice(0,10) }, ...data.stats] });
-  const deleteStat = idx => persist({ ...data, stats: data.stats.filter((_, i) => i !== idx) });
-  const addSleep = entry => persist({ ...data, sleep: [{ ...entry, date: new Date().toISOString().slice(0,10) }, ...data.sleep] });
+
+  useEffect(() => {
+    if (!chartExercise) return;
+    const stored = data.lockedTargets[chartExercise];
+    if (phaseIdx === 2) {
+      if (stored && stored.phaseIdx === 2) return;
+      const resolved = resolveExerciseBase(chartExercise, data.sessions);
+      if (!resolved) return;
+      persist({ ...data, lockedTargets: { ...data.lockedTargets, [chartExercise]: { value: roundHalf(resolved.base), estimated: resolved.estimated, phaseIdx: 2, segment: 0, hold: true } } });
+      return;
+    }
+    const { segment, weeksInSegment } = phaseSegmentInfo(phaseIdx, weekInPhase);
+    if (stored && stored.phaseIdx === phaseIdx && stored.segment === segment) return;
+    const computed = computeExerciseTarget(chartExercise, data.sessions, weeksInSegment);
+    if (!computed) return;
+    persist({ ...data, lockedTargets: { ...data.lockedTargets, [chartExercise]: { ...computed, phaseIdx, segment, hold: false } } });
+  }, [chartExercise, phaseIdx, weekInPhase]);
+
+
+  const pauseProgram = () => persist({ ...data, pause: { active: true, startDate: localDateStr() } });
+  const resumeProgram = () => {
+    const todayStr = localDateStr();
+    const daysPaused = Math.max(0, Math.round((new Date(todayStr) - new Date(data.pause.startDate)) / 86400000));
+    let factor = null;
+    if (daysPaused >= 4 && daysPaused <= 10) factor = 0.9;
+    else if (daysPaused > 10) factor = 0.8;
+    persist({ ...data, dateShiftDays: (data.dateShiftDays || 0) + daysPaused, pause: { active: false, startDate: null }, returnAdjustment: factor ? { factor, daysPaused } : null });
+  };
+  const addStat = entry => persist({ ...data, stats: sortByDateDesc([{ ...entry, date: entry.date || localDateStr() }, ...data.stats]) });
+  const deleteStat = idx => {
+    const entry = data.stats[idx];
+    if (entry && entry.photoIds) {
+      if (entry.photoIds.front) deletePhotoBlob(entry.photoIds.front).catch(() => {});
+      if (entry.photoIds.side) deletePhotoBlob(entry.photoIds.side).catch(() => {});
+    }
+    persist({ ...data, stats: data.stats.filter((_, i) => i !== idx) });
+  };
+  const updateStat = (idx, entry) => persist({ ...data, stats: sortByDateDesc(data.stats.map((s, i) => i === idx ? { ...entry } : s)) });
+  const addSleep = entry => persist({ ...data, sleep: sortByDateDesc([{ ...entry, date: entry.date || localDateStr() }, ...data.sleep]) });
   const deleteSleep = idx => persist({ ...data, sleep: data.sleep.filter((_, i) => i !== idx) });
-  const addSessionLog = (name, exercises) => persist({ ...data, sessions: [{ date: new Date().toISOString().slice(0,10), sessionName: name, phaseIdx, exercises }, ...data.sessions] });
+  const updateSleep = (idx, entry) => persist({ ...data, sleep: sortByDateDesc(data.sleep.map((s, i) => i === idx ? { ...entry } : s)) });
   const deleteSession = idx => persist({ ...data, sessions: data.sessions.filter((_, i) => i !== idx) });
-  const updateSession = (idx, name, exercises) => persist({ ...data, sessions: data.sessions.map((s, i) => i === idx ? { ...s, sessionName: name, exercises } : s) });
-  const addRun = entry => persist({ ...data, runs: [{ ...entry, date: new Date().toISOString().slice(0,10) }, ...data.runs] });
+  const updateSession = (idx, name, exercises, date) => persist({ ...data, sessions: sortByDateDesc(data.sessions.map((s, i) => i === idx ? { ...s, sessionName: name, exercises, date: date || s.date } : s)) });
+  const addRun = entry => persist({ ...data, runs: sortByDateDesc([{ ...entry, date: entry.date || localDateStr() }, ...data.runs]) });
   const deleteRun = idx => persist({ ...data, runs: data.runs.filter((_, i) => i !== idx) });
-  const addAnkleChecklist = exs => persist({ ...data, ankle: { ...data.ankle, sessions: [{ date: new Date().toISOString().slice(0,10), stage: data.ankle.stage, exercises: exs }, ...data.ankle.sessions] } });
+  const updateRun = (idx, entry) => persist({ ...data, runs: sortByDateDesc(data.runs.map((r, i) => i === idx ? { ...entry } : r)) });
+  const addAnkleChecklist = (exs, date) => persist({ ...data, ankle: { ...data.ankle, sessions: sortByDateDesc([{ date: date || localDateStr(), stage: data.ankle.stage, exercises: exs }, ...data.ankle.sessions]) } });
   const deleteAnkleEntry = idx => persist({ ...data, ankle: { ...data.ankle, sessions: data.ankle.sessions.filter((_, i) => i !== idx) } });
+  const updateAnkleEntry = (idx, exs, date) => persist({ ...data, ankle: { ...data.ankle, sessions: sortByDateDesc(data.ankle.sessions.map((s, i) => i === idx ? { ...s, exercises: exs, date: date || s.date } : s)) } });
   const setAnkleStage = stage => persist({ ...data, ankle: { ...data.ankle, stage } });
-  const addFlexSession = exs => persist({ ...data, flexibility: [{ date: new Date().toISOString().slice(0,10), exercises: exs }, ...data.flexibility] });
+  const addFlexSession = (exs, date) => persist({ ...data, flexibility: sortByDateDesc([{ date: date || localDateStr(), exercises: exs }, ...data.flexibility]) });
   const deleteFlexEntry = idx => persist({ ...data, flexibility: data.flexibility.filter((_, i) => i !== idx) });
-  const addMeal = entry => persist({ ...data, nutrition: [{ ...entry, date: new Date().toISOString().slice(0,10) }, ...data.nutrition] });
+  const updateFlexEntry = (idx, exs, date) => persist({ ...data, flexibility: sortByDateDesc(data.flexibility.map((s, i) => i === idx ? { ...s, exercises: exs, date: date || s.date } : s)) });
   const deleteMeal = idx => persist({ ...data, nutrition: data.nutrition.filter((_, i) => i !== idx) });
+  const updateMeal = (idx, entry) => persist({ ...data, nutrition: sortByDateDesc(data.nutrition.map((m, i) => i === idx ? { ...entry } : m)) });
+  const deleteSavedMeal = id => persist({ ...data, savedMeals: data.savedMeals.filter(p => p.id !== id) });
   const toggleDayComplete = date => {
     const has = data.nutritionComplete.includes(date);
     persist({ ...data, nutritionComplete: has ? data.nutritionComplete.filter(d => d !== date) : [...data.nutritionComplete, date] });
   };
 
-  const exportDataFn = () => {
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const exportDataFn = async () => {
+    let photos = {};
+    try { photos = await getAllPhotoBlobs(); } catch (e) { console.error("Photo export failed", e); }
+    const blob = new Blob([JSON.stringify({ ...data, photos }, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url; a.download = `trailhead-backup-${new Date().toISOString().slice(0,10)}.json`;
+    a.href = url; a.download = `trailhead-backup-${localDateStr()}.json`;
     a.click(); URL.revokeObjectURL(url);
   };
   const importDataFn = file => {
@@ -879,7 +1404,13 @@ function App() {
       try {
         const parsed = JSON.parse(reader.result);
         if (window.confirm("Import will replace all current data on this device. Continue?")) {
-          persist({ stats: [], sessions: [], runs: [], ankle: { stage: 1, sessions: [] }, flexibility: [], nutrition: [], nutritionComplete: [], sleep: [], ...parsed });
+          const { photos, ...rest } = parsed;
+          persist({ stats: [], sessions: [], runs: [], ankle: { stage: 1, sessions: [] }, flexibility: [], nutrition: [], nutritionComplete: [], sleep: [], dateShiftDays: 0, pause: { active: false, startDate: null }, returnAdjustment: null, savedMeals: [], lockedTargets: {}, ...rest });
+          if (photos && typeof photos === "object") {
+            clearAllPhotos()
+              .then(() => Promise.all(Object.entries(photos).map(([id, dataUrl]) => savePhotoBlob(id, dataUrl))))
+              .catch(e => console.error("Photo import failed", e));
+          }
         }
       } catch (e) { window.alert("Couldn't read that file — make sure it's a Trailhead export."); }
     };
@@ -887,7 +1418,8 @@ function App() {
   };
   const resetAll = () => {
     if (window.confirm("This deletes all logged data on this device permanently. Continue?")) {
-      persist({ stats: [], sessions: [], runs: [], ankle: { stage: 1, sessions: [] }, flexibility: [], nutrition: [], nutritionComplete: [], sleep: [] });
+      persist({ stats: [], sessions: [], runs: [], ankle: { stage: 1, sessions: [] }, flexibility: [], nutrition: [], nutritionComplete: [], sleep: [], dateShiftDays: 0, pause: { active: false, startDate: null }, returnAdjustment: null, savedMeals: [], lockedTargets: {} });
+      clearAllPhotos().catch(() => {});
     }
   };
 
@@ -899,6 +1431,19 @@ function App() {
       .map(s => ({ date: s.date.slice(5), weight: parseFloat(s.exercises.find(e => e.name === chartExercise).weight) })).reverse();
   }, [data.sessions, chartExercise]);
   const weightTrend = useMemo(() => data.stats.filter(s => s.weight).map(s => ({ date: s.date.slice(5), value: parseFloat(s.weight) })).reverse(), [data.stats]);
+  const nutritionTrends = useMemo(() => {
+    const byDate = {};
+    data.nutrition.forEach(m => {
+      if (!byDate[m.date]) byDate[m.date] = { kcal: 0, protein: 0 };
+      byDate[m.date].kcal += Number(m.kcal || 0);
+      byDate[m.date].protein += Number(m.protein || 0);
+    });
+    const dates = Object.keys(byDate).sort();
+    return {
+      kcal: dates.map(d => ({ date: d.slice(5), value: byDate[d].kcal })),
+      protein: dates.map(d => ({ date: d.slice(5), value: byDate[d].protein })),
+    };
+  }, [data.nutrition]);
   const bfTrend = useMemo(() => data.stats.filter(s => s.bf).map(s => ({ date: s.date.slice(5), value: parseFloat(s.bf) })).reverse(), [data.stats]);
   const rollingAvg = (arr, n, key) => { const slice = arr.slice(0, n).map(x => parseFloat(x[key])).filter(v => !isNaN(v)); return slice.length ? (slice.reduce((a,b)=>a+b,0)/slice.length).toFixed(0) : "—"; };
   const rollingDailyAvg = (mealsByDate, n, key) => {
@@ -909,7 +1454,7 @@ function App() {
   };
 
   const p = PHASE_SESSIONS[phaseIdx], phaseColor = PHASES[phaseIdx].color, target = PHASE_TARGET[phaseIdx];
-  const todayStr = new Date().toISOString().slice(0,10);
+  const todayStr = localDateStr();
   const todayMeals = data.nutrition.filter(n => n.date === todayStr);
   const todayTotals = todayMeals.reduce((acc, m) => ({ kcal: acc.kcal + Number(m.kcal||0), protein: acc.protein + Number(m.protein||0), fat: acc.fat + Number(m.fat||0), carbs: acc.carbs + Number(m.carbs||0) }), { kcal: 0, protein: 0, fat: 0, carbs: 0 });
   const todayComplete = data.nutritionComplete.includes(todayStr);
@@ -955,7 +1500,7 @@ function App() {
   };
 
   return (
-    <div style={{ background: bg, backgroundImage: "radial-gradient(circle at 20% 10%, rgba(193,98,43,0.10) 0%, transparent 40%)", minHeight: "100vh", maxWidth: 440, margin: "0 auto", display: "flex", flexDirection: "column" }}>
+    <div style={{ background: bg, minHeight: "100vh", maxWidth: 440, margin: "0 auto", display: "flex", flexDirection: "column" }}>
       <div style={{ padding: "18px 18px 0", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
         <div>
           <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 24, color: ink, fontWeight: 700 }}>{formatHeaderDate()}</div>
@@ -963,7 +1508,7 @@ function App() {
         </div>
         <button onClick={() => setTab("data")} aria-label="Data settings" style={{ background: "none", border: "none", cursor: "pointer", padding: 4, marginTop: 2, display: "flex" }}><Icon name="Database" size={19} color={muted} /></button>
       </div>
-      <Timeline data={data} onPhaseClick={i => { setViewPhaseIdx(i); setTab("phase"); }} />
+      <Timeline data={data} onPhaseClick={i => { setViewPhaseIdx(i); setTab("phase"); }} onPause={pauseProgram} onResume={resumeProgram} />
       {deloadActive && (
         <div style={{ margin: "0 18px 10px", background: "#8C4A2A", color: "#FBF4E6", borderRadius: 10, padding: "8px 12px", fontSize: 12, fontWeight: 600 }}>
           Deload week — reduced volume. Session logging shows suggested lighter numbers.
@@ -975,31 +1520,39 @@ function App() {
 
         {tab === "home" && (
           <div>
-            <div style={{ fontSize: 12, textTransform: "uppercase", color: muted, marginBottom: 8 }}>This week</div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 }}>
-              <ScorecardTile label="Weights" count={weightsCount} target={weightsTarget} onClick={() => setTab("sessions")} />
-              <ScorecardTile label="Run" count={runCount} target={runTarget} extra={runTarget === 0 ? "Starts week 5" : null} onClick={() => setTab("run")} />
-              <ScorecardTile label="Mobility" count={mobilityCount} target={mobilityTarget} onClick={() => setTab("mobility")} />
-              <ScorecardTile label="Nutrition" count={foodWeekStats.logged} target={7} extra={foodWeekStats.logged > 0 ? foodWeekStats.floorMet + "/" + foodWeekStats.logged + " on target" : null} onClick={() => setTab("food")} />
-            </div>
+            {data.pause && data.pause.active ? (
+              <div style={{ ...card, padding: "14px", marginBottom: 14, textAlign: "center" }}>
+                <div style={{ fontSize: 12.5, color: "#4A4D42", fontStyle: "italic" }}>Program paused — nothing to check in on right now. Resume from the button above when you're back.</div>
+              </div>
+            ) : (
+              <>
+                <div style={{ fontSize: 12, textTransform: "uppercase", color: muted, marginBottom: 8 }}>This week</div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 }}>
+                  <ScorecardTile label="Weights" count={weightsCount} target={weightsTarget} onClick={() => setTab("sessions")} />
+                  <ScorecardTile label="Run" count={runCount} target={runTarget} extra={runTarget === 0 ? "Starts week 5" : null} onClick={() => setTab("run")} />
+                  <ScorecardTile label="Mobility" count={mobilityCount} target={mobilityTarget} onClick={() => setTab("mobility")} />
+                  <ScorecardTile label="Nutrition" count={foodWeekStats.logged} target={7} extra={foodWeekStats.logged > 0 ? foodWeekStats.floorMet + "/" + foodWeekStats.logged + " on target" : null} onClick={() => setTab("food")} />
+                </div>
 
-            <div style={{ ...card, padding: "12px 14px", marginBottom: 14 }}>
-              <div style={{ fontSize: 11, textTransform: "uppercase", color: "#6B6F63", marginBottom: 4 }}>Due today — {DAY_NAMES[(new Date().getDay() + 6) % 7]}</div>
-              {todayChecklist.length <= 1 && (
-                <div style={{ fontSize: 12.5, color: "#4A4D42", fontStyle: "italic", marginBottom: 6 }}>Rest day — nothing scheduled for training, running, or mobility.</div>
-              )}
-              {todayChecklist.map((item, i) => (
-                <ChecklistRow key={i} label={item.label} done={item.done} isLast={i === todayChecklist.length - 1} onClick={() => setTab(item.tab)} />
-              ))}
-              {todayChecklist.length <= 1 && (() => {
-                const next = nextUpFromToday(phaseIdx, weekInPhase);
-                return next ? (
-                  <div style={{ fontSize: 11.5, color: "#8A7B5C", marginTop: 8, paddingTop: 8, borderTop: "1px solid #E2DCCB" }}>
-                    Next up: <strong>{next.day}</strong> — {next.activity}
-                  </div>
-                ) : null;
-              })()}
-            </div>
+                <div style={{ ...card, padding: "12px 14px", marginBottom: 14 }}>
+                  <div style={{ fontSize: 11, textTransform: "uppercase", color: "#6B6F63", marginBottom: 4 }}>Due today — {DAY_NAMES[(new Date().getDay() + 6) % 7]}</div>
+                  {todayChecklist.length <= 1 && (
+                    <div style={{ fontSize: 12.5, color: "#4A4D42", fontStyle: "italic", marginBottom: 6 }}>Rest day — nothing scheduled for training, running, or mobility.</div>
+                  )}
+                  {todayChecklist.map((item, i) => (
+                    <ChecklistRow key={i} label={item.label} done={item.done} isLast={i === todayChecklist.length - 1} onClick={() => setTab(item.tab)} />
+                  ))}
+                  {todayChecklist.length <= 1 && (() => {
+                    const next = nextUpFromToday(phaseIdx, weekInPhase);
+                    return next ? (
+                      <div style={{ fontSize: 11.5, color: "#8A7B5C", marginTop: 8, paddingTop: 8, borderTop: "1px solid #E2DCCB" }}>
+                        Next up: <strong>{next.day}</strong> — {next.activity}
+                      </div>
+                    ) : null;
+                  })()}
+                </div>
+              </>
+            )}
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
               {SECTIONS.map(s => (
@@ -1010,6 +1563,13 @@ function App() {
         )}
 
         {tab === "schedule" && (() => {
+          if (data.pause && data.pause.active) {
+            return (
+              <div style={{ ...card, padding: "14px", textAlign: "center" }}>
+                <div style={{ fontSize: 12.5, color: "#4A4D42", fontStyle: "italic" }}>Program paused — the weekly schedule will pick back up once you resume from Home.</div>
+              </div>
+            );
+          }
           const template = weekTemplate(phaseIdx, weekInPhase);
           const now = new Date();
           const todayName = DAY_NAMES[(now.getDay() + 6) % 7];
@@ -1104,6 +1664,7 @@ function App() {
           return (
             <div>
               <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 14, color: phaseColor, marginBottom: 4, textTransform: "uppercase" }}>{PHASES[pIdx].name} · {p.label}</div>
+              <div style={{ fontSize: 11.5, color: "#8FA38C", marginBottom: 8 }}>{PHASES[pIdx].weeks} weeks · {PHASES[pIdx].sub}</div>
               <div style={{ color: ink, fontSize: 12.5, lineHeight: 1.6, marginBottom: 4 }}>{p.framing}</div>
               <div style={{ color: muted, fontSize: 11.5, fontStyle: "italic", marginBottom: 14 }}>{p.deload}</div>
               <div style={{ ...card, padding: "12px 14px", marginBottom: 16 }}>
@@ -1119,8 +1680,22 @@ function App() {
                   <div style={{ color: ink, fontSize: 12.5, fontWeight: 700, marginBottom: 4 }}>{name}</div>
                   <div style={{ ...card, padding: "10px 12px" }}>
                     {exercises.map(([ex, scheme], i) => (
-                      <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "3px 0", borderBottom: i < exercises.length-1 ? "1px solid #E2DCCB" : "none" }}>
-                        <span style={{ fontSize: 12.5 }}>{ex}</span><span style={{ fontSize: 11.5, color: "#6B6F63" }}>{showingDeload ? deloadScheme(scheme) : scheme}</span>
+                      <div key={i} style={{ padding: "3px 0", borderBottom: i < exercises.length-1 && !expandedSubs[ex] ? "1px solid #E2DCCB" : "none" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <span style={{ fontSize: 12.5, display: "flex", alignItems: "center", gap: 5 }}>
+                            {ex}
+                            {EXERCISE_SUBSTITUTES[ex] && (
+                              <button onClick={() => setExpandedSubs(s => ({ ...s, [ex]: !s[ex] }))}
+                                style={{ background: "none", border: "none", cursor: "pointer", color: "#8A7B5C", fontSize: 10, padding: 2 }} title="Equipment not available?">⇄</button>
+                            )}
+                          </span>
+                          <span style={{ fontSize: 11.5, color: "#6B6F63" }}>{showingDeload ? deloadScheme(scheme) : scheme}</span>
+                        </div>
+                        {expandedSubs[ex] && EXERCISE_SUBSTITUTES[ex] && (
+                          <div style={{ fontSize: 10.5, color: "#8A7B5C", fontStyle: "italic", marginTop: 2, paddingBottom: 2, borderBottom: i < exercises.length-1 ? "1px solid #E2DCCB" : "none" }}>
+                            {EXERCISE_SUBSTITUTES[ex]}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -1154,27 +1729,37 @@ function App() {
             <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
               <SubTab label="Measurements" active={bodySubTab === "measurements"} onClick={() => setBodySubTab("measurements")} />
               <SubTab label="Sleep" active={bodySubTab === "sleep"} onClick={() => setBodySubTab("sleep")} />
+              <SubTab label="Photos" active={bodySubTab === "photos"} onClick={() => setBodySubTab("photos")} />
             </div>
 
             {bodySubTab === "measurements" && (
               <div>
-                <AddButton label="Log weight, waist, BF%" onClick={() => setShowForm(showForm === "body" ? null : "body")} />
-                {showForm === "body" && <BodyForm onSubmit={e => { addStat(e); setShowForm(null); }} />}
+                <AddButton label={editingStatIdx !== null ? "Editing entry — cancel" : "Log weight, waist, BF%"} onClick={() => { if (editingStatIdx !== null) { setEditingStatIdx(null); setShowForm(null); } else setShowForm(showForm === "body" ? null : "body"); }} />
+                {showForm === "body" && (
+                  <BodyForm
+                    initial={editingStatIdx !== null ? data.stats[editingStatIdx] : null}
+                    onSubmit={e => {
+                      if (editingStatIdx !== null) { updateStat(editingStatIdx, e); setEditingStatIdx(null); }
+                      else addStat(e);
+                      setShowForm(null);
+                    }}
+                  />
+                )}
                 {(weightTrend.length >= 2 || bfTrend.length >= 2) && (
                   <div style={{ ...card, padding: 14, marginBottom: 16 }}>
                     <div style={{ fontSize: 12, textTransform: "uppercase", color: "#6B6F63", marginBottom: 6 }}>Weight trend</div>
-                    <MiniChart data={weightTrend} baseline={target.weight} />
+                    <MiniChart data={weightTrend} baseline={target.weight} unit="kg" />
                     {bfTrend.length >= 2 && (<>
                       <div style={{ fontSize: 12, textTransform: "uppercase", color: "#6B6F63", margin: "12px 0 6px" }}>Body fat % trend</div>
-                      <MiniChart data={bfTrend} baseline={target.bf} />
+                      <MiniChart data={bfTrend} baseline={target.bf} unit="%" />
                     </>)}
                   </div>
                 )}
                 <div style={{ fontSize: 11.5, color: "#8FA38C", marginBottom: 6 }}>{data.stats.length > 0 ? "Last 2 weeks" : ""}</div>
                 {data.stats.length === 0 ? <EmptyState text="No entries yet. Log weekly, same conditions each time." /> :
                   data.stats.slice(0, statsShown).map((s, i) => (
-                    <Entry key={i} onDelete={() => deleteStat(i)}>
-                      <div style={{ display: "flex", justifyContent: "space-between", paddingRight: 24 }}>
+                    <Entry key={i} onEdit={() => { setEditingStatIdx(i); setShowForm("body"); }} onDelete={() => { if (editingStatIdx === i) { setEditingStatIdx(null); setShowForm(null); } deleteStat(i); }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", paddingRight: 48 }}>
                         <div style={{ fontSize: 15, fontWeight: 600 }}>{s.weight}kg · {s.waist}cm{s.bf ? ` · ${s.bf}% BF` : ""}</div>
                         <div style={{ fontSize: 11, color: "#6B6F63" }}>{s.date}</div>
                       </div>
@@ -1186,13 +1771,22 @@ function App() {
 
             {bodySubTab === "sleep" && (
               <div>
-                <AddButton label="Log last night's sleep" onClick={() => setShowForm(showForm === "sleep" ? null : "sleep")} />
-                {showForm === "sleep" && <SleepForm onSubmit={e => { addSleep(e); setShowForm(null); }} />}
+                <AddButton label={editingSleepIdx !== null ? "Editing entry — cancel" : "Log last night's sleep"} onClick={() => { if (editingSleepIdx !== null) { setEditingSleepIdx(null); setShowForm(null); } else setShowForm(showForm === "sleep" ? null : "sleep"); }} />
+                {showForm === "sleep" && (
+                  <SleepForm
+                    initial={editingSleepIdx !== null ? data.sleep[editingSleepIdx] : null}
+                    onSubmit={e => {
+                      if (editingSleepIdx !== null) { updateSleep(editingSleepIdx, e); setEditingSleepIdx(null); }
+                      else addSleep(e);
+                      setShowForm(null);
+                    }}
+                  />
+                )}
                 <div style={{ fontSize: 11.5, color: "#8FA38C", marginBottom: 6 }}>{data.sleep.length > 0 ? "Last 2 weeks" : ""}</div>
                 {data.sleep.length === 0 ? <EmptyState text="No sleep logged yet. Log it daily — doesn't need to line up with a weigh-in." /> :
                   data.sleep.slice(0, sleepShown).map((s, i) => (
-                    <Entry key={i} onDelete={() => deleteSleep(i)}>
-                      <div style={{ display: "flex", justifyContent: "space-between", paddingRight: 24 }}>
+                    <Entry key={i} onEdit={() => { setEditingSleepIdx(i); setShowForm("sleep"); }} onDelete={() => { if (editingSleepIdx === i) { setEditingSleepIdx(null); setShowForm(null); } deleteSleep(i); }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", paddingRight: 48 }}>
                         <div style={{ fontSize: 15, fontWeight: 600 }}>{s.hours}h{s.quality ? ` · quality ${s.quality}/5` : ""}</div>
                         <div style={{ fontSize: 11, color: "#6B6F63" }}>{s.date}</div>
                       </div>
@@ -1201,6 +1795,7 @@ function App() {
                 <ShowMoreButton remaining={data.sleep.length - sleepShown} onClick={() => setSleepExtra(v => v + 10)} />
               </div>
             )}
+            {bodySubTab === "photos" && <PhotoJourney stats={data.stats} />}
           </div>
         )}
 
@@ -1213,12 +1808,18 @@ function App() {
             {(showForm === "session" || editingSessionIdx !== null) && (
               <SessionForm
                 sessions={currentSessions}
+                phaseIdx={phaseIdx}
+                weekInPhase={weekInPhase}
                 priorSessions={data.sessions}
                 initial={editingSessionIdx !== null ? data.sessions[editingSessionIdx] : null}
                 isDeload={deloadActive && editingSessionIdx === null}
-                onSubmit={(n, ex) => {
-                  if (editingSessionIdx !== null) { updateSession(editingSessionIdx, n, ex); setEditingSessionIdx(null); }
-                  else addSessionLog(n, ex);
+                returnAdjustment={editingSessionIdx === null ? data.returnAdjustment : null}
+                onSubmit={(n, ex, date) => {
+                  if (editingSessionIdx !== null) { updateSession(editingSessionIdx, n, ex, date); setEditingSessionIdx(null); }
+                  else {
+                    const newSession = { date: date || localDateStr(), sessionName: n, phaseIdx, exercises: ex };
+                    persist({ ...data, sessions: sortByDateDesc([newSession, ...data.sessions]), returnAdjustment: data.returnAdjustment ? null : data.returnAdjustment });
+                  }
                   setShowForm(null);
                 }}
               />
@@ -1240,7 +1841,24 @@ function App() {
                     </div>
                   ) : null;
                 })()}
-                <ExerciseMiniChart data={chartData} baseline={BASELINE[chartExercise]} />
+                <ExerciseMiniChart data={chartData} target={chartExercise ? data.lockedTargets[chartExercise] : null} isPR={(() => {
+                  if (!chartExercise || chartData.length === 0) return false;
+                  const allWeights = data.sessions.filter(s => !isDeloadForDate(s.date)).flatMap(s => {
+                    const f = s.exercises.find(e => e.name === chartExercise);
+                    return f && f.weight !== "" ? [parseFloat(f.weight)] : [];
+                  });
+                  if (!allWeights.length) return false;
+                  const bestEver = REVERSE_PROGRESS.includes(chartExercise) ? Math.min(...allWeights) : Math.max(...allWeights);
+                  return chartData[chartData.length - 1].weight === bestEver;
+                })()} />
+                {chartExercise && phaseIdx !== 2 && (() => {
+                  const projection = computeProjection(chartExercise, data.sessions, phaseIdx, weekInPhase);
+                  return projection ? (
+                    <div style={{ fontSize: 10.5, color: "#6B6F63", marginTop: 4 }}>
+                      At your current pace: <strong style={{ color: "#4A4D42" }}>~{projection.value}kg</strong> by end of {PHASES[phaseIdx].name} ({projection.weeksRemaining} {projection.weeksRemaining === 1 ? "week" : "weeks"} away). A rough extrapolation, not a promise.
+                    </div>
+                  ) : null;
+                })()}
               </div>
             )}
             <div style={{ fontSize: 12, textTransform: "uppercase", color: "#9A9C8E", marginBottom: 8 }}>Session history — last 2 weeks</div>
@@ -1262,9 +1880,10 @@ function App() {
                     const scheme = getScheme(s.phaseIdx, s.sessionName, e.name);
                     const level = isDeloadForDate(s.date) ? null : (scheme ? repSuccessLevel(e.reps, scheme) : null);
                     const levelColor = level === "gold" ? "#D4AF37" : level === "green" ? "#7A8F5C" : level === "rust" ? "#8C4A2A" : "#2B2318";
+                    const isPRentry = !isDeloadForDate(s.date) && isAllTimeHighAtTime(data.sessions, e.name, s.date, e.weight);
                     return (
                       <div key={j} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "2px 0" }}>
-                        <span>{e.name}</span><span style={{ color: levelColor, fontWeight: level ? 700 : 400 }}>{e.weight}kg × {e.reps}</span>
+                        <span>{e.name}{isPRentry && <span title="All-time PR" style={{ color: "#D4AF37", marginLeft: 4 }}>★</span>}</span><span style={{ color: levelColor, fontWeight: level ? 700 : 400 }}>{e.weight}kg × {e.reps}</span>
                       </div>
                     );
                   })}
@@ -1276,13 +1895,22 @@ function App() {
 
         {tab === "run" && (
           <div>
-            <AddButton label="Log a run" onClick={() => setShowForm(showForm === "run" ? null : "run")} />
-            {showForm === "run" && <RunForm onSubmit={e => { addRun(e); setShowForm(null); }} />}
+            <AddButton label={editingRunIdx !== null ? "Editing run — cancel" : "Log a run"} onClick={() => { if (editingRunIdx !== null) { setEditingRunIdx(null); setShowForm(null); } else setShowForm(showForm === "run" ? null : "run"); }} />
+            {showForm === "run" && (
+              <RunForm
+                initial={editingRunIdx !== null ? data.runs[editingRunIdx] : null}
+                onSubmit={e => {
+                  if (editingRunIdx !== null) { updateRun(editingRunIdx, e); setEditingRunIdx(null); }
+                  else addRun(e);
+                  setShowForm(null);
+                }}
+              />
+            )}
             {data.runs.length > 0 && <div style={{ fontSize: 12, textTransform: "uppercase", color: "#8FA38C", marginBottom: 8 }}>Run history — last 2 weeks</div>}
             {data.runs.length === 0 ? <EmptyState text="Running starts week 5 of Phase 1." /> :
               data.runs.slice(0, runsShown).map((r, i) => (
-                <Entry key={i} onDelete={() => deleteRun(i)}>
-                  <div style={{ display: "flex", justifyContent: "space-between", paddingRight: 24 }}>
+                <Entry key={i} onEdit={() => { setEditingRunIdx(i); setShowForm("run"); }} onDelete={() => { if (editingRunIdx === i) { setEditingRunIdx(null); setShowForm(null); } deleteRun(i); }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", paddingRight: 48 }}>
                     <div>
                       <div style={{ fontSize: 15, fontWeight: 600 }}>{r.distance}km · {r.duration}min</div>
                       <div style={{ fontSize: 11, color: r.continuous ? "#7A8F5C" : "#8C4A2A" }}>{r.continuous ? "Uninterrupted" : "Run/walk intervals"}</div>
@@ -1311,12 +1939,21 @@ function App() {
                     ))}
                   </div>
                 </div>
-                <ExerciseChecklist exercises={ANKLE_EXERCISES[data.ankle.stage]} onSubmit={addAnkleChecklist} submitLabel="Log completed exercises" />
+                <ExerciseChecklist
+                  exercises={ANKLE_EXERCISES[data.ankle.stage]}
+                  initial={editingAnkleIdx !== null ? data.ankle.sessions[editingAnkleIdx] : null}
+                  onSubmit={(exs, date) => {
+                    if (editingAnkleIdx !== null) { updateAnkleEntry(editingAnkleIdx, exs, date); setEditingAnkleIdx(null); }
+                    else addAnkleChecklist(exs, date);
+                  }}
+                  submitLabel={editingAnkleIdx !== null ? "Save changes" : "Log completed exercises"}
+                  onCancel={() => setEditingAnkleIdx(null)}
+                />
                 <div style={{ fontSize: 12, textTransform: "uppercase", color: "#9A9C8E", marginBottom: 8, marginTop: 6 }}>History</div>
                 {data.ankle.sessions.length === 0 ? <EmptyState text="No sessions logged yet." /> :
                   data.ankle.sessions.slice(0, 12).map((s, i) => (
-                    <Entry key={i} onDelete={() => deleteAnkleEntry(i)}>
-                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4, paddingRight: 24 }}>
+                    <Entry key={i} onEdit={() => setEditingAnkleIdx(i)} onDelete={() => { if (editingAnkleIdx === i) setEditingAnkleIdx(null); deleteAnkleEntry(i); }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4, paddingRight: 48 }}>
                         <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 14 }}>Stage {s.stage}</span>
                         <span style={{ fontSize: 11, color: "#6B6F63" }}>{s.date}</span>
                       </div>
@@ -1328,12 +1965,21 @@ function App() {
             {mobilitySubTab === "flex" && (
               <div>
                 <div style={{ color: ink, fontSize: 12.5, marginBottom: 12, lineHeight: 1.5 }}>10-15 min after each strength session, all three phases.</div>
-                <ExerciseChecklist exercises={FLEXIBILITY_ROUTINE} onSubmit={addFlexSession} submitLabel="Log flexibility session" />
+                <ExerciseChecklist
+                  exercises={FLEXIBILITY_ROUTINE}
+                  initial={editingFlexIdx !== null ? data.flexibility[editingFlexIdx] : null}
+                  onSubmit={(exs, date) => {
+                    if (editingFlexIdx !== null) { updateFlexEntry(editingFlexIdx, exs, date); setEditingFlexIdx(null); }
+                    else addFlexSession(exs, date);
+                  }}
+                  submitLabel={editingFlexIdx !== null ? "Save changes" : "Log flexibility session"}
+                  onCancel={() => setEditingFlexIdx(null)}
+                />
                 <div style={{ fontSize: 12, textTransform: "uppercase", color: "#9A9C8E", marginBottom: 8, marginTop: 6 }}>History</div>
                 {data.flexibility.length === 0 ? <EmptyState text="No sessions logged yet." /> :
                   data.flexibility.slice(0, 12).map((s, i) => (
-                    <Entry key={i} onDelete={() => deleteFlexEntry(i)}>
-                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4, paddingRight: 24 }}>
+                    <Entry key={i} onEdit={() => setEditingFlexIdx(i)} onDelete={() => { if (editingFlexIdx === i) setEditingFlexIdx(null); deleteFlexEntry(i); }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4, paddingRight: 48 }}>
                         <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 14 }}>Flexibility session</span>
                         <span style={{ fontSize: 11, color: "#6B6F63" }}>{s.date}</span>
                       </div>
@@ -1354,12 +2000,7 @@ function App() {
           const mealsByDate = {};
           data.nutrition.forEach(m => { (mealsByDate[m.date] = mealsByDate[m.date] || []).push(m); });
           const pastDates = Object.keys(mealsByDate).filter(d => d !== todayStr).sort((a,b) => b.localeCompare(a));
-          const pastDaysRecentCount = pastDates.filter(d => d >= twoWeekCutoffStr()).length;
-          const pastDaysShown = pastDaysRecentCount + pastDaysExtra;
-          const last7 = Array.from({ length: 7 }, (_, i) => {
-            const d = new Date();
-            d.setDate(d.getDate() - (6 - i));
-            const ds = d.toISOString().slice(0, 10);
+          const last7 = getWeekDates(elapsedRaw).map(ds => {
             const meals = mealsByDate[ds] || (ds === todayStr ? todayMeals : []);
             if (!meals.length) return { date: ds, logged: false };
             const t = meals.reduce((acc, m) => ({ kcal: acc.kcal + Number(m.kcal||0), protein: acc.protein + Number(m.protein||0) }), { kcal: 0, protein: 0 });
@@ -1401,19 +2042,39 @@ function App() {
               </button>
             </div>
 
-            <AddButton label="Add a meal" onClick={() => setShowForm(showForm === "food" ? null : "food")} />
-            {showForm === "food" && <MealForm onSubmit={e => { addMeal(e); setShowForm(null); }} />}
+            <AddButton label={editingMealIdx !== null ? "Editing meal — cancel" : "Add a meal"} onClick={() => { if (editingMealIdx !== null) { setEditingMealIdx(null); setShowForm(null); } else setShowForm(showForm === "food" ? null : "food"); }} />
+            {showForm === "food" && (
+              <MealForm
+                initial={editingMealIdx !== null ? data.nutrition[editingMealIdx] : null}
+                savedMeals={data.savedMeals}
+                onDeleteSavedMeal={deleteSavedMeal}
+                onSubmit={(entry, preset) => {
+                  if (editingMealIdx !== null) {
+                    updateMeal(editingMealIdx, entry);
+                    setEditingMealIdx(null);
+                  } else {
+                    const newEntry = { ...entry, date: entry.date || localDateStr() };
+                    persist({
+                      ...data,
+                      nutrition: sortByDateDesc([newEntry, ...data.nutrition]),
+                      savedMeals: preset ? [...data.savedMeals, preset] : data.savedMeals,
+                    });
+                  }
+                  setShowForm(null);
+                }}
+              />
+            )}
 
             {todayMeals.length > 0 && (
               <div style={{ marginBottom: 16 }}>
                 {todayMeals.map(n => {
                   const idx = data.nutrition.indexOf(n);
                   return (
-                    <Entry key={idx} onDelete={() => deleteMeal(idx)}>
-                      <div style={{ display: "flex", justifyContent: "space-between", paddingRight: 24 }}>
+                    <Entry key={idx} onEdit={() => { setEditingMealIdx(idx); setShowForm("food"); }} onDelete={() => { if (editingMealIdx === idx) { setEditingMealIdx(null); setShowForm(null); } deleteMeal(idx); }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", paddingRight: 48 }}>
                         <div>
-                          <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 14, fontWeight: 700 }}>{n.meal || "Meal"}</div>
-                          <div style={{ fontSize: 11.5, color: "#4A4D42" }}>{n.kcal} kcal · {n.protein}g P · {n.fat}g F · {n.carbs}g C</div>
+                          <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 14, fontWeight: 700 }}>{n.meal || n.type || "Meal"}</div>
+                          <div style={{ fontSize: 11.5, color: "#4A4D42" }}>{n.type && n.meal ? n.type + " · " : ""}{n.kcal} kcal · {n.protein}g P · {n.fat}g F · {n.carbs}g C</div>
                         </div>
                       </div>
                     </Entry>
@@ -1428,6 +2089,11 @@ function App() {
                 <span style={{ fontSize: 11, color: "#8A7B5C" }}>{loggedDays}/7 days logged</span>
               </div>
               <div style={{ fontSize: 10.5, color: "#6B6F63", marginBottom: 4 }}>Calories on target</div>
+              <div style={{ display: "flex", gap: 5, marginBottom: 2 }}>
+                {["M","T","W","T","F","S","S"].map((letter, i) => (
+                  <div key={i} style={{ flex: 1, textAlign: "center", fontSize: 9, color: "#8A7B5C" }}>{letter}</div>
+                ))}
+              </div>
               <div style={{ display: "flex", gap: 5, marginBottom: 10 }}>
                 {last7.map((d, i) => (
                   <div key={i} title={d.logged ? `${d.date}: ${d.kcal} kcal` : `${d.date}: not logged`}
@@ -1461,38 +2127,86 @@ function App() {
               </div>
             )}
 
+            {(nutritionTrends.kcal.length >= 2 || nutritionTrends.protein.length >= 2) && (
+              <div style={{ ...card, padding: 14, marginBottom: 16 }}>
+                <div style={{ fontSize: 12, textTransform: "uppercase", color: "#6B6F63", marginBottom: 6 }}>Calories trend</div>
+                <MiniChart data={nutritionTrends.kcal} baseline={KCAL_RANGES[phaseIdx].optimalMin} unit=" kcal" />
+                <div style={{ fontSize: 12, textTransform: "uppercase", color: "#6B6F63", margin: "12px 0 6px" }}>Protein trend</div>
+                <MiniChart data={nutritionTrends.protein} baseline={scorecardProteinFloor} unit="g" />
+              </div>
+            )}
+
             {pastDates.length > 0 && (
               <>
-                <div style={{ fontSize: 12, textTransform: "uppercase", color: "#8FA38C", marginBottom: 8 }}>Past days — last 2 weeks</div>
-                {pastDates.slice(0, pastDaysShown).map(date => {
-                  const meals = mealsByDate[date];
-                  const total = meals.reduce((acc, m) => ({ kcal: acc.kcal + Number(m.kcal||0), protein: acc.protein + Number(m.protein||0) }), { kcal: 0, protein: 0 });
-                  const complete = data.nutritionComplete.includes(date);
-                  return (
-                    <Entry key={date}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
-                        <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 14, fontWeight: 700 }}>{date}{complete && <span style={{ color: "#7A8F5C" }}> ✓</span>}</span>
-                        <span style={{ fontSize: 11, display: "flex", gap: 8 }}>
-                          <span style={{ color: kcalStatusColor(total.kcal, phaseIdx), fontWeight: 700 }}>{total.kcal} kcal</span>
-                          <span style={{ color: proteinStatusColor(total.protein, proteinFloor, proteinOptimal), fontWeight: 700 }}>{total.protein}g P</span>
-                        </span>
-                      </div>
-                      {meals.map(m => {
-                        const idx = data.nutrition.indexOf(m);
-                        return (
-                          <div key={idx} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "2px 0" }}>
-                            <span>{m.meal || "Meal"}</span>
-                            <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                              {m.kcal}kcal
-                              <button onClick={() => deleteMeal(idx)} style={{ background: "none", border: "none", cursor: "pointer", color: "#8A7B5C", display: "flex" }}><Icon name="X" size={12} /></button>
-                            </span>
+                <div style={{ fontSize: 12, textTransform: "uppercase", color: "#8FA38C", marginBottom: 8 }}>Past days</div>
+                {(() => {
+                  const monthGroups = {};
+                  pastDates.forEach(date => {
+                    const mk = date.slice(0, 7);
+                    (monthGroups[mk] = monthGroups[mk] || []).push(date);
+                  });
+                  const monthKeys = Object.keys(monthGroups).sort((a, b) => b.localeCompare(a));
+                  return monthKeys.map(monthKey => {
+                    const datesInMonth = monthGroups[monthKey];
+                    const monthExpanded = !!expandedMonths[monthKey];
+                    const dayTotals = datesInMonth.map(d => {
+                      const meals = mealsByDate[d];
+                      return meals.reduce((acc, m) => ({ kcal: acc.kcal + Number(m.kcal||0), protein: acc.protein + Number(m.protein||0) }), { kcal: 0, protein: 0 });
+                    });
+                    const avgKcal = Math.round(dayTotals.reduce((s, t) => s + t.kcal, 0) / dayTotals.length);
+                    const avgProtein = Math.round(dayTotals.reduce((s, t) => s + t.protein, 0) / dayTotals.length);
+                    return (
+                      <div key={monthKey} style={{ marginBottom: 8 }}>
+                        <button onClick={() => setExpandedMonths(e => ({ ...e, [monthKey]: !e[monthKey] }))}
+                          style={{ ...card, width: "100%", display: "flex", justifyContent: "space-between", alignItems: "center", border: "none", cursor: "pointer", padding: "10px 14px" }}>
+                          <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 14, fontWeight: 700, display: "flex", alignItems: "center", gap: 5 }}>
+                            <span style={{ fontSize: 10, color: "#8A7B5C", display: "inline-block", transform: monthExpanded ? "rotate(90deg)" : "none" }}>▸</span>
+                            {formatMonthLabel(monthKey)}
+                            <span style={{ fontWeight: 400, color: "#8A7B5C", fontSize: 11 }}>· {datesInMonth.length} {datesInMonth.length === 1 ? "day" : "days"}</span>
+                          </span>
+                          <span style={{ fontSize: 11, color: "#6B6F63" }}>{avgKcal} kcal · {avgProtein}g P avg</span>
+                        </button>
+                        {monthExpanded && (
+                          <div style={{ marginTop: 6 }}>
+                            {datesInMonth.map(date => {
+                              const meals = mealsByDate[date];
+                              const total = meals.reduce((acc, m) => ({ kcal: acc.kcal + Number(m.kcal||0), protein: acc.protein + Number(m.protein||0) }), { kcal: 0, protein: 0 });
+                              const complete = data.nutritionComplete.includes(date);
+                              const expanded = !!expandedDays[date];
+                              return (
+                                <Entry key={date}>
+                                  <button onClick={() => setExpandedDays(e => ({ ...e, [date]: !e[date] }))}
+                                    style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", width: "100%", background: "none", border: "none", cursor: "pointer", padding: 0, marginBottom: expanded ? 6 : 0 }}>
+                                    <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 14, fontWeight: 700, display: "flex", alignItems: "center", gap: 5 }}>
+                                      <span style={{ fontSize: 10, color: "#8A7B5C", display: "inline-block", transform: expanded ? "rotate(90deg)" : "none" }}>▸</span>
+                                      {date}{complete && <span style={{ color: "#7A8F5C" }}> ✓</span>}
+                                    </span>
+                                    <span style={{ fontSize: 11, display: "flex", gap: 8 }}>
+                                      <span style={{ color: kcalStatusColor(total.kcal, phaseIdx), fontWeight: 700 }}>{total.kcal} kcal</span>
+                                      <span style={{ color: proteinStatusColor(total.protein, proteinFloor, proteinOptimal), fontWeight: 700 }}>{total.protein}g P</span>
+                                    </span>
+                                  </button>
+                                  {expanded && meals.map(m => {
+                                    const idx = data.nutrition.indexOf(m);
+                                    return (
+                                      <div key={idx} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "2px 0 2px 15px" }}>
+                                        <span>{m.meal || m.type || "Meal"}</span>
+                                        <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                          {m.kcal}kcal
+                                          <button onClick={() => { if (window.confirm("Delete this meal? This can't be undone.")) deleteMeal(idx); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#8A7B5C", display: "flex" }}><Icon name="X" size={12} /></button>
+                                        </span>
+                                      </div>
+                                    );
+                                  })}
+                                </Entry>
+                              );
+                            })}
                           </div>
-                        );
-                      })}
-                    </Entry>
-                  );
-                })}
-                <ShowMoreButton remaining={pastDates.length - pastDaysShown} onClick={() => setPastDaysExtra(v => v + 10)} />
+                        )}
+                      </div>
+                    );
+                  });
+                })()}
               </>
             )}
           </div>
