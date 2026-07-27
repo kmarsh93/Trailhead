@@ -856,21 +856,21 @@ function PhotoJourney({ stats }) {
       <div style={{ fontSize: 11, color: "#6B6F63", marginBottom: 8 }}>{entries.length} {entries.length === 1 ? "checkpoint" : "checkpoints"} — scroll to see your journey, tap to expand</div>
       <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 8, WebkitOverflowScrolling: "touch" }}>
         {entries.map((e, i) => (
-          <button key={i} onClick={() => setExpandedIdx(i)} style={{ flex: "0 0 auto", width: 108, background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left" }}>
-            <div style={{ ...card, padding: 6 }}>
+          <button key={i} onClick={() => setExpandedIdx(i)} style={{ flex: "0 0 auto", width: 160, background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left" }}>
+            <div style={{ ...card, padding: 7 }}>
               {e.photoIds.front && photos[e.photoIds.front] ? (
-                <img src={photos[e.photoIds.front]} alt="" style={{ width: "100%", borderRadius: 6, display: "block", marginBottom: e.photoIds.side ? 4 : 0 }} />
+                <img src={photos[e.photoIds.front]} alt="" style={{ width: "100%", borderRadius: 8, display: "block", marginBottom: e.photoIds.side ? 5 : 0 }} />
               ) : e.photoIds.front ? (
-                <div style={{ width: "100%", height: 96, borderRadius: 6, background: "#E4DFD1", marginBottom: e.photoIds.side ? 4 : 0 }} />
+                <div style={{ width: "100%", height: 140, borderRadius: 8, background: "#E4DFD1", marginBottom: e.photoIds.side ? 5 : 0 }} />
               ) : null}
               {e.photoIds.side && photos[e.photoIds.side] ? (
-                <img src={photos[e.photoIds.side]} alt="" style={{ width: "100%", borderRadius: 6, display: "block" }} />
+                <img src={photos[e.photoIds.side]} alt="" style={{ width: "100%", borderRadius: 8, display: "block" }} />
               ) : e.photoIds.side ? (
-                <div style={{ width: "100%", height: 96, borderRadius: 6, background: "#E4DFD1" }} />
+                <div style={{ width: "100%", height: 140, borderRadius: 8, background: "#E4DFD1" }} />
               ) : null}
             </div>
-            <div style={{ fontSize: 10, color: "#8A7B5C", textAlign: "center", marginTop: 4 }}>{formatShortDate(e.date)}</div>
-            <div style={{ fontSize: 10.5, color: "#4A4D42", fontWeight: 700, textAlign: "center" }}>
+            <div style={{ fontSize: 11, color: "#8A7B5C", textAlign: "center", marginTop: 5 }}>{formatShortDate(e.date)}</div>
+            <div style={{ fontSize: 12, color: "#4A4D42", fontWeight: 700, textAlign: "center" }}>
               {e.weight}kg{e.bf ? " · " + e.bf + "%" : ""}
             </div>
           </button>
@@ -878,19 +878,19 @@ function PhotoJourney({ stats }) {
       </div>
       {expanded && (
         <div onClick={() => setExpandedIdx(null)}
-          style={{ position: "fixed", inset: 0, background: "rgba(11,47,30,0.97)", zIndex: 1000, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          style={{ position: "fixed", inset: 0, background: "rgba(11,47,30,0.97)", zIndex: 1000, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 16 }}>
           <button onClick={e => { e.stopPropagation(); setExpandedIdx(null); }}
-            style={{ position: "absolute", top: 18, right: 18, background: "none", border: "none", color: "#F3ECD9", cursor: "pointer", padding: 6, display: "flex" }} aria-label="Close">
+            style={{ position: "absolute", top: 14, right: 14, background: "none", border: "none", color: "#F3ECD9", cursor: "pointer", padding: 6, display: "flex", zIndex: 1 }} aria-label="Close">
             <Icon name="X" size={26} />
           </button>
-          <div onClick={e => e.stopPropagation()} style={{ width: "100%", maxWidth: 360, display: "flex", flexDirection: "column", gap: 10 }}>
+          <div onClick={e => e.stopPropagation()} style={{ width: "100%", maxWidth: 360, maxHeight: "calc(100vh - 70px)", overflowY: "auto", display: "flex", flexDirection: "column", alignItems: "center", gap: 10, padding: "0 4px" }}>
             {expanded.photoIds.front && photos[expanded.photoIds.front] && (
-              <img src={photos[expanded.photoIds.front]} alt="" style={{ width: "100%", borderRadius: 10, display: "block" }} />
+              <img src={photos[expanded.photoIds.front]} alt="" style={{ maxWidth: "100%", maxHeight: "44vh", width: "auto", height: "auto", borderRadius: 10, display: "block" }} />
             )}
             {expanded.photoIds.side && photos[expanded.photoIds.side] && (
-              <img src={photos[expanded.photoIds.side]} alt="" style={{ width: "100%", borderRadius: 10, display: "block" }} />
+              <img src={photos[expanded.photoIds.side]} alt="" style={{ maxWidth: "100%", maxHeight: "44vh", width: "auto", height: "auto", borderRadius: 10, display: "block" }} />
             )}
-            <div style={{ textAlign: "center", color: "#F3ECD9", fontSize: 13, marginTop: 2 }}>
+            <div style={{ textAlign: "center", color: "#F3ECD9", fontSize: 13, marginTop: 2, flexShrink: 0 }}>
               {formatShortDate(expanded.date)} — {expanded.weight}kg{expanded.bf ? " · " + expanded.bf + "%" : ""}
             </div>
           </div>
