@@ -500,6 +500,15 @@ function formatHeaderDate() {
   const d = new Date();
   return days[d.getDay()] + ", " + d.getDate() + " " + months[d.getMonth()];
 }
+function formatShortDate(dateStr) {
+  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const parts = dateStr.split("-").map(n => parseInt(n, 10));
+  return parts[2] + " " + months[parts[1] - 1] + " " + parts[0];
+}
+function formatChartDate(dateStr) {
+  const parts = dateStr.split("-");
+  return parts[2] + "-" + parts[1];
+}
 function phaseForWeekIndex(wi) {
   let cursor = 0;
   for (let i = 0; i < PHASES.length; i++) { if (wi < cursor + PHASES[i].weeks) return i; cursor += PHASES[i].weeks; }
@@ -821,6 +830,7 @@ function ShowMoreButton({ remaining, onClick }) {
 function PhotoJourney({ stats }) {
   const [photos, setPhotos] = useState({});
   const [loading, setLoading] = useState(true);
+  const [expandedIdx, setExpandedIdx] = useState(null);
   const entries = useMemo(
     () => stats.filter(s => s.photoIds && (s.photoIds.front || s.photoIds.side)).slice().sort((a, b) => a.date.localeCompare(b.date)),
     [stats]
@@ -840,12 +850,13 @@ function PhotoJourney({ stats }) {
   }, [entries]);
   if (entries.length === 0) return <EmptyState text="No progress photos yet. Add a front and/or side photo next time you log a weigh-in." />;
   if (loading) return <div style={{ fontSize: 12.5, color: "#8A7B5C", fontStyle: "italic" }}>Loading photos…</div>;
+  const expanded = expandedIdx != null ? entries[expandedIdx] : null;
   return (
     <div>
-      <div style={{ fontSize: 11, color: "#6B6F63", marginBottom: 8 }}>{entries.length} {entries.length === 1 ? "checkpoint" : "checkpoints"} — scroll to see your journey</div>
+      <div style={{ fontSize: 11, color: "#6B6F63", marginBottom: 8 }}>{entries.length} {entries.length === 1 ? "checkpoint" : "checkpoints"} — scroll to see your journey, tap to expand</div>
       <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 8, WebkitOverflowScrolling: "touch" }}>
         {entries.map((e, i) => (
-          <div key={i} style={{ flex: "0 0 auto", width: 108 }}>
+          <button key={i} onClick={() => setExpandedIdx(i)} style={{ flex: "0 0 auto", width: 108, background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left" }}>
             <div style={{ ...card, padding: 6 }}>
               {e.photoIds.front && photos[e.photoIds.front] ? (
                 <img src={photos[e.photoIds.front]} alt="" style={{ width: "100%", borderRadius: 6, display: "block", marginBottom: e.photoIds.side ? 4 : 0 }} />
@@ -858,10 +869,33 @@ function PhotoJourney({ stats }) {
                 <div style={{ width: "100%", height: 96, borderRadius: 6, background: "#E4DFD1" }} />
               ) : null}
             </div>
-            <div style={{ fontSize: 10, color: "#8A7B5C", textAlign: "center", marginTop: 4 }}>{e.date}</div>
-          </div>
+            <div style={{ fontSize: 10, color: "#8A7B5C", textAlign: "center", marginTop: 4 }}>{formatShortDate(e.date)}</div>
+            <div style={{ fontSize: 10.5, color: "#4A4D42", fontWeight: 700, textAlign: "center" }}>
+              {e.weight}kg{e.bf ? " · " + e.bf + "%" : ""}
+            </div>
+          </button>
         ))}
       </div>
+      {expanded && (
+        <div onClick={() => setExpandedIdx(null)}
+          style={{ position: "fixed", inset: 0, background: "rgba(11,47,30,0.97)", zIndex: 1000, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <button onClick={e => { e.stopPropagation(); setExpandedIdx(null); }}
+            style={{ position: "absolute", top: 18, right: 18, background: "none", border: "none", color: "#F3ECD9", cursor: "pointer", padding: 6, display: "flex" }} aria-label="Close">
+            <Icon name="X" size={26} />
+          </button>
+          <div onClick={e => e.stopPropagation()} style={{ width: "100%", maxWidth: 360, display: "flex", flexDirection: "column", gap: 10 }}>
+            {expanded.photoIds.front && photos[expanded.photoIds.front] && (
+              <img src={photos[expanded.photoIds.front]} alt="" style={{ width: "100%", borderRadius: 10, display: "block" }} />
+            )}
+            {expanded.photoIds.side && photos[expanded.photoIds.side] && (
+              <img src={photos[expanded.photoIds.side]} alt="" style={{ width: "100%", borderRadius: 10, display: "block" }} />
+            )}
+            <div style={{ textAlign: "center", color: "#F3ECD9", fontSize: 13, marginTop: 2 }}>
+              {formatShortDate(expanded.date)} — {expanded.weight}kg{expanded.bf ? " · " + expanded.bf + "%" : ""}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1445,9 +1479,9 @@ function App() {
   const chartData = useMemo(() => {
     if (!chartExercise) return [];
     return data.sessions.filter(s => s.exercises.some(e => e.name === chartExercise && e.weight !== ""))
-      .map(s => ({ date: s.date.slice(5), weight: parseFloat(s.exercises.find(e => e.name === chartExercise).weight) })).reverse();
+      .map(s => ({ date: formatChartDate(s.date), weight: parseFloat(s.exercises.find(e => e.name === chartExercise).weight) })).reverse();
   }, [data.sessions, chartExercise]);
-  const weightTrend = useMemo(() => data.stats.filter(s => s.weight).map(s => ({ date: s.date.slice(5), value: parseFloat(s.weight) })).reverse(), [data.stats]);
+  const weightTrend = useMemo(() => data.stats.filter(s => s.weight).map(s => ({ date: formatChartDate(s.date), value: parseFloat(s.weight) })).reverse(), [data.stats]);
   const nutritionTrends = useMemo(() => {
     const byDate = {};
     data.nutrition.forEach(m => {
@@ -1457,11 +1491,11 @@ function App() {
     });
     const dates = Object.keys(byDate).sort();
     return {
-      kcal: dates.map(d => ({ date: d.slice(5), value: byDate[d].kcal })),
-      protein: dates.map(d => ({ date: d.slice(5), value: byDate[d].protein })),
+      kcal: dates.map(d => ({ date: formatChartDate(d), value: byDate[d].kcal })),
+      protein: dates.map(d => ({ date: formatChartDate(d), value: byDate[d].protein })),
     };
   }, [data.nutrition]);
-  const bfTrend = useMemo(() => data.stats.filter(s => s.bf).map(s => ({ date: s.date.slice(5), value: parseFloat(s.bf) })).reverse(), [data.stats]);
+  const bfTrend = useMemo(() => data.stats.filter(s => s.bf).map(s => ({ date: formatChartDate(s.date), value: parseFloat(s.bf) })).reverse(), [data.stats]);
   const rollingAvg = (arr, n, key) => { const slice = arr.slice(0, n).map(x => parseFloat(x[key])).filter(v => !isNaN(v)); return slice.length ? (slice.reduce((a,b)=>a+b,0)/slice.length).toFixed(0) : "—"; };
   const rollingDailyAvg = (mealsByDate, n, key) => {
     const dates = Object.keys(mealsByDate).sort((a,b) => b.localeCompare(a)).slice(0, n);
@@ -1779,7 +1813,7 @@ function App() {
                     <Entry key={i} onEdit={() => { setEditingStatIdx(i); setShowForm("body"); }} onDelete={() => { if (editingStatIdx === i) { setEditingStatIdx(null); setShowForm(null); } deleteStat(i); }}>
                       <div style={{ display: "flex", justifyContent: "space-between", paddingRight: 48 }}>
                         <div style={{ fontSize: 15, fontWeight: 600 }}>{s.weight}kg · {s.waist}cm{s.bf ? ` · ${s.bf}% BF` : ""}</div>
-                        <div style={{ fontSize: 11, color: "#6B6F63" }}>{s.date}</div>
+                        <div style={{ fontSize: 11, color: "#6B6F63" }}>{formatShortDate(s.date)}</div>
                       </div>
                     </Entry>
                   ))}
@@ -1806,7 +1840,7 @@ function App() {
                     <Entry key={i} onEdit={() => { setEditingSleepIdx(i); setShowForm("sleep"); }} onDelete={() => { if (editingSleepIdx === i) { setEditingSleepIdx(null); setShowForm(null); } deleteSleep(i); }}>
                       <div style={{ display: "flex", justifyContent: "space-between", paddingRight: 48 }}>
                         <div style={{ fontSize: 15, fontWeight: 600 }}>{s.hours}h{s.quality ? ` · quality ${s.quality}/5` : ""}</div>
-                        <div style={{ fontSize: 11, color: "#6B6F63" }}>{s.date}</div>
+                        <div style={{ fontSize: 11, color: "#6B6F63" }}>{formatShortDate(s.date)}</div>
                       </div>
                     </Entry>
                   ))}
@@ -1892,7 +1926,7 @@ function App() {
                 <Entry key={i} onEdit={() => { setEditingSessionIdx(i); setShowForm(null); }} onDelete={() => { if (editingSessionIdx === i) setEditingSessionIdx(null); deleteSession(i); }}>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, paddingRight: 40 }}>
                     <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, fontWeight: 600 }}>{s.sessionName}</span>
-                    <span style={{ fontSize: 11, color: "#6B6F63" }}>{s.date}</span>
+                    <span style={{ fontSize: 11, color: "#6B6F63" }}>{formatShortDate(s.date)}</span>
                   </div>
                   {s.exercises.filter(e => e.weight !== "").map((e, j) => {
                     const scheme = getScheme(s.phaseIdx, s.sessionName, e.name);
@@ -1933,7 +1967,7 @@ function App() {
                       <div style={{ fontSize: 15, fontWeight: 600 }}>{r.distance}km · {r.duration}min</div>
                       <div style={{ fontSize: 11, color: r.continuous ? "#7A8F5C" : "#8C4A2A" }}>{r.continuous ? "Uninterrupted" : "Run/walk intervals"}</div>
                     </div>
-                    <div style={{ fontSize: 11, color: "#6B6F63" }}>{r.date}</div>
+                    <div style={{ fontSize: 11, color: "#6B6F63" }}>{formatShortDate(r.date)}</div>
                   </div>
                 </Entry>
               ))}
@@ -1973,7 +2007,7 @@ function App() {
                     <Entry key={i} onEdit={() => setEditingAnkleIdx(i)} onDelete={() => { if (editingAnkleIdx === i) setEditingAnkleIdx(null); deleteAnkleEntry(i); }}>
                       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4, paddingRight: 48 }}>
                         <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 14 }}>Stage {s.stage}</span>
-                        <span style={{ fontSize: 11, color: "#6B6F63" }}>{s.date}</span>
+                        <span style={{ fontSize: 11, color: "#6B6F63" }}>{formatShortDate(s.date)}</span>
                       </div>
                       {(s.exercises || []).map((ex, j) => <div key={j} style={{ fontSize: 12, padding: "1px 0" }}>✓ {ex}</div>)}
                     </Entry>
@@ -1999,7 +2033,7 @@ function App() {
                     <Entry key={i} onEdit={() => setEditingFlexIdx(i)} onDelete={() => { if (editingFlexIdx === i) setEditingFlexIdx(null); deleteFlexEntry(i); }}>
                       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4, paddingRight: 48 }}>
                         <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 14 }}>Flexibility session</span>
-                        <span style={{ fontSize: 11, color: "#6B6F63" }}>{s.date}</span>
+                        <span style={{ fontSize: 11, color: "#6B6F63" }}>{formatShortDate(s.date)}</span>
                       </div>
                       {(s.exercises || []).map((ex, j) => <div key={j} style={{ fontSize: 12, padding: "1px 0" }}>✓ {ex}</div>)}
                     </Entry>
@@ -2197,7 +2231,7 @@ function App() {
                                     style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", width: "100%", background: "none", border: "none", cursor: "pointer", padding: 0, marginBottom: expanded ? 6 : 0 }}>
                                     <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 14, fontWeight: 700, display: "flex", alignItems: "center", gap: 5 }}>
                                       <span style={{ fontSize: 10, color: "#8A7B5C", display: "inline-block", transform: expanded ? "rotate(90deg)" : "none" }}>▸</span>
-                                      {date}{complete && <span style={{ color: "#7A8F5C" }}> ✓</span>}
+                                      {formatShortDate(date)}{complete && <span style={{ color: "#7A8F5C" }}> ✓</span>}
                                     </span>
                                     <span style={{ fontSize: 11, display: "flex", gap: 8 }}>
                                       <span style={{ color: kcalStatusColor(total.kcal, phaseIdx), fontWeight: 700 }}>{total.kcal} kcal</span>
