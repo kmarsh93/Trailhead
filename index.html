@@ -162,6 +162,7 @@ const PHASE_TARGET = [
   { weight: 77.5, bf: 15, label: "End of Phase 3 — final goal" },
 ];
 const PHASE_START_WEIGHT = [81, 74.75, 79.4];
+const USER_HEIGHT_CM = 183;
 
 const GOLD_STATUS = "#D4AF37";
 const GREEN_STATUS = "#7A8F5C";
@@ -373,6 +374,14 @@ function computeProjection(exerciseName, sessionLogs, phaseIdx, weekInPhase) {
 }
 
 function weeksBetween(a, b) { return Math.floor((b - a) / 6048e5); }
+// Hodgdon-Beckett (1984) US Navy circumference formula, verified against a known worked example
+// (waist 40.2in, neck 15.2in, height 72in -> 26.8%) before use. Inputs in cm, converted internally.
+function computeNavyBF(waistCm, neckCm, heightCm) {
+  const w = waistCm / 2.54, n = neckCm / 2.54, h = heightCm / 2.54;
+  if (!(w > n)) return null;
+  const raw = 86.010 * Math.log10(w - n) - 70.041 * Math.log10(h) + 36.76;
+  return Math.round(raw * 10) / 10;
+}
 function localDateStr(d) {
   d = d || new Date();
   const y = d.getFullYear();
@@ -964,14 +973,16 @@ function DateField({ date, setDate }) {
   );
 }
 
-function BodyForm({ onSubmit, initial }) {
+function BodyForm({ onSubmit, initial, lastNeck }) {
   const [weight, setWeight] = useState(initial ? initial.weight : ""), [waist, setWaist] = useState(initial ? initial.waist : ""), [bf, setBf] = useState(initial ? initial.bf : "");
+  const [neck, setNeck] = useState(initial ? (initial.neck || "") : (lastNeck || ""));
   const [date, setDate] = useState(initial ? initial.date : localDateStr());
   const [frontPreview, setFrontPreview] = useState(null);
   const [sidePreview, setSidePreview] = useState(null);
   const [saving, setSaving] = useState(false);
   const hasExistingFront = initial && initial.photoIds && initial.photoIds.front;
   const hasExistingSide = initial && initial.photoIds && initial.photoIds.side;
+  const navyEstimate = waist && neck ? computeNavyBF(parseFloat(waist), parseFloat(neck), USER_HEIGHT_CM) : null;
   const handlePhoto = async (file, setter) => {
     if (!file) return;
     try { setter(await compressImage(file)); } catch (e) { console.error("Photo processing failed", e); }
@@ -994,7 +1005,7 @@ function BodyForm({ onSubmit, initial }) {
         photoIds.side = id;
       }
     } catch (e) { console.error("Photo save failed", e); }
-    onSubmit({ weight, waist, bf, date, photoIds: (photoIds.front || photoIds.side) ? photoIds : undefined });
+    onSubmit({ weight, waist, bf, neck: neck || undefined, date, photoIds: (photoIds.front || photoIds.side) ? photoIds : undefined });
     setSaving(false);
   };
   return (
@@ -1006,7 +1017,14 @@ function BodyForm({ onSubmit, initial }) {
       </FieldRow>
       <FieldRow>
         <input style={inputStyle} placeholder="Body fat % (optional)" value={bf} onChange={e => setBf(e.target.value)} />
+        <input style={inputStyle} placeholder="Neck (cm, optional)" value={neck} onChange={e => setNeck(e.target.value)} />
       </FieldRow>
+      {navyEstimate != null && (
+        <button type="button" onClick={() => setBf(String(navyEstimate))}
+          style={{ width: "100%", textAlign: "left", background: "#F3ECD9", border: "1px dashed #C1622B", borderRadius: 8, padding: "8px 10px", marginBottom: 8, cursor: "pointer", fontSize: 11.5, color: "#4A4D42" }}>
+          Navy method estimate: <strong>{navyEstimate}%</strong> — tap to use this for Body fat %
+        </button>
+      )}
       <div style={{ fontSize: 11, color: "#6B6F63", marginTop: 4, marginBottom: 6 }}>Progress photos (optional)</div>
       <FieldRow>
         <label style={{ ...inputStyle, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", textAlign: "center", padding: "8px 4px" }}>
@@ -1737,6 +1755,7 @@ function App() {
                 {showForm === "body" && (
                   <BodyForm
                     initial={editingStatIdx !== null ? data.stats[editingStatIdx] : null}
+                    lastNeck={(data.stats.find(s => s.neck) || {}).neck}
                     onSubmit={e => {
                       if (editingStatIdx !== null) { updateStat(editingStatIdx, e); setEditingStatIdx(null); }
                       else addStat(e);
