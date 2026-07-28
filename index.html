@@ -71,7 +71,7 @@ const START_WEIGHTS = { "Bench Press": 50, "Pull-Downs": 42.5, "Leg Press": 60, 
 const PHASE_SESSIONS = [
   { label: "3x/week full body — A / B / C rotation", framing: "Rebuild first: prioritize clean form and consistency as strength returns — weight increases will come as capability rebuilds, not before.", deload: "Deload every 5th week — same exercises, ~50% less volume.",
     sessions: {
-      "Session A": [["Bench Press", "3 x 6-8"], ["Pull-Downs", "3 x 8-10"], ["Leg Press", "4 x 10-12"], ["Shoulder Press", "2 x 8-10"], ["Leg Curl", "3 x 10-12"], ["Overhead Triceps Extension", "2 x 10-12"], ["Plank", "2"]],
+      "Session A": [["Bench Press", "3 x 6-8"], ["Pull-Downs", "3 x 8-10"], ["Leg Press", "4 x 10-12"], ["Shoulder Press", "3 x 8-10"], ["Leg Curl", "3 x 10-12"], ["Overhead Triceps Extension", "2 x 10-12"], ["Plank", "2"]],
       "Session B": [["Low Rows", "3 x 6-8"], ["DB Bench Press", "3 x 8-10"], ["RDL", "3 x 10-12"], ["Lateral Raises", "3 x 12-15"], ["Preacher Curl (machine)", "3 x 12-15"], ["Bicycle Crunch", "2"]],
       "Session C": [["Incline Press", "3 x 8-10"], ["Cable Row", "3 x 8-10"], ["Leg Press", "4 x 10-12"], ["Calf Raises", "3 x 12-15"], ["Triceps Pushdown", "2 x 10-12"], ["Rear Delt Fly", "2 x 12-15"], ["Plank", "2"]],
     }},
@@ -84,12 +84,20 @@ const PHASE_SESSIONS = [
     }},
   { label: "3x/week full body — A / B / C (maintenance)", framing: "Hold, don't chase: match or hold Phase 2 end-weights. A flat or slightly-down week is expected, not a failure.", deload: "One deload around week 4 of this phase.",
     sessions: {
-      "Session A": [["Bench Press", "3 x 6-8"], ["Pull-Downs", "3 x 8-10"], ["Leg Press", "4 x 10-12"], ["Shoulder Press", "2 x 8-10"], ["Leg Curl", "3 x 10-12"], ["Overhead Triceps Extension", "2 x 10-12"], ["Plank", "2"]],
+      "Session A": [["Bench Press", "3 x 6-8"], ["Pull-Downs", "3 x 8-10"], ["Leg Press", "4 x 10-12"], ["Shoulder Press", "3 x 8-10"], ["Leg Curl", "3 x 10-12"], ["Overhead Triceps Extension", "2 x 10-12"], ["Plank", "2"]],
       "Session B": [["Low Rows", "3 x 6-8"], ["DB Bench Press", "3 x 8-10"], ["RDL", "3 x 10-12"], ["Lateral Raises", "3 x 12-15"], ["Preacher Curl (machine)", "3 x 12-15"], ["Bicycle Crunch", "2"]],
       "Session C": [["Incline Press", "3 x 8-10"], ["Cable Row", "3 x 8-10"], ["Leg Press", "4 x 10-12"], ["Calf Raises", "3 x 12-15"], ["Triceps Pushdown", "2 x 10-12"], ["Rear Delt Fly", "2 x 12-15"], ["Plank", "2"]],
     }},
 ];
 const REVERSE_PROGRESS = ["Dips (assisted)"];
+const ISOLATION_EXERCISES = ["Lateral Raises", "Preacher Curl (machine)", "Calf Raises", "Triceps Pushdown", "Hammer Curl (machine)", "Rear Delt Fly", "Overhead Triceps Extension", "Leg Curl"];
+const C25K_SCHEDULE = {
+  1: [8, 8, 8], 2: [8.5, 8.5, 8.5], 3: [9, 9, 9], 4: [16, 16, 16],
+  5: [15, 16, 20], 6: [18, 20, 25], 7: [25, 25, 25], 8: [28, 28, 28], 9: [30, 30, 30],
+};
+function restNoteFor(exerciseName) {
+  return ISOLATION_EXERCISES.indexOf(exerciseName) !== -1 ? "~60s" : "~2 min";
+}
 const STORAGE_KEY = "recomp-tracker-data";
 
 const DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -347,12 +355,12 @@ function computeExerciseTarget(exerciseName, sessionLogs, weeksToProject) {
   return { value: roundHalf(raw), estimated: resolved.estimated };
 }
 function phaseSegmentInfo(phaseIdx, weekInPhase) {
-  if (phaseIdx === 2) return { segment: 0, weeksInSegment: PHASES[2].weeks };
+  if (phaseIdx === 2) return { segment: 0, weeksInSegment: PHASES[2].weeks, segEnd: PHASES[2].weeks };
   const segLen = Math.ceil(PHASES[phaseIdx].weeks / 3);
   const segment = Math.min(2, Math.floor((weekInPhase - 1) / segLen));
   const segStart = segment * segLen + 1;
   const segEnd = Math.min(PHASES[phaseIdx].weeks, (segment + 1) * segLen);
-  return { segment, weeksInSegment: Math.max(1, segEnd - segStart + 1) };
+  return { segment, weeksInSegment: Math.max(1, segEnd - segStart + 1), segEnd };
 }
 function isAllTimeHighAtTime(sessionLogs, exerciseName, date, weight) {
   const w = parseFloat(weight);
@@ -393,6 +401,14 @@ function computeNavyBF(waistCm, neckCm, heightCm) {
   if (!(w > n)) return null;
   const raw = 86.010 * Math.log10(w - n) - 70.041 * Math.log10(h) + 36.76;
   return Math.round(raw * 10) / 10;
+}
+function formatPace(distanceKm, durationMin) {
+  const d = parseFloat(distanceKm), t = parseFloat(durationMin);
+  if (!d || !t) return null;
+  const paceMin = t / d;
+  const mins = Math.floor(paceMin);
+  const secs = Math.round((paceMin - mins) * 60);
+  return mins + ":" + String(secs).padStart(2, "0") + "/km";
 }
 function localDateStr(d) {
   d = d || new Date();
@@ -970,7 +986,7 @@ function MealDetailModal({ meal, phaseIdx, onClose }) {
     </div>
   );
 }
-function MiniChart({ data, baseline, unit }) {
+function MiniChart({ data, baseline, unit, label }) {
   if (data.length < 2) return <EmptyState text="Log at least twice to see a trend." />;
   const w = 300, h = 140, padTop = 22, padBottom = 18, padLeft = 34, padRight = 10;
   const values = data.map(d => d.value);
@@ -990,7 +1006,7 @@ function MiniChart({ data, baseline, unit }) {
       {baseline != null && (
         <>
           <line x1={padLeft} x2={w - padRight} y1={y(baseline)} y2={y(baseline)} stroke="#8C4A2A" strokeDasharray="4 4" strokeWidth="1" />
-          <text x={w - padRight} y={y(baseline) - 4} fontSize="9" fill="#8C4A2A" fontWeight="700" textAnchor="end">{"Target " + baseline + u}</text>
+          <text x={w - padRight} y={y(baseline) - 4} fontSize="9" fill="#8C4A2A" fontWeight="700" textAnchor="end">{(label || "Target") + ": " + baseline + u}</text>
         </>
       )}
       <polyline points={points} fill="none" stroke={gold} strokeWidth="2" />
@@ -1001,7 +1017,7 @@ function MiniChart({ data, baseline, unit }) {
     </svg>
   );
 }
-function ExerciseMiniChart({ data, target, isPR }) {
+function ExerciseMiniChart({ data, target, isPR, phaseEndTarget, segEnd, phaseName }) {
   if (data.length < 2) {
     return (
       <>
@@ -1009,6 +1025,9 @@ function ExerciseMiniChart({ data, target, isPR }) {
         {target && (
           <div style={{ fontSize: 10.5, color: "#6B6F63", marginTop: 6 }}>
             {target.hold ? "Hold" : "Target"}: <strong style={{ color: "#4A4D42" }}>{target.value}kg</strong>{target.estimated ? " (estimated from a related exercise)" : ""}
+            {phaseEndTarget && segEnd && (
+              <> by week {segEnd} · <strong style={{ color: "#4A4D42" }}>~{phaseEndTarget.value}kg</strong> by end of {phaseName}</>
+            )}
           </div>
         )}
       </>
@@ -1025,22 +1044,29 @@ function ExerciseMiniChart({ data, target, isPR }) {
   const lastIdx = data.length - 1;
   const mid = (min + max) / 2;
   return (
-    <svg width="100%" viewBox={"0 0 " + w + " " + h}>
-      {[min + 2, mid, max - 2].map((v, i) => (
-        <text key={i} x={padLeft - 6} y={y(v) + 3} fontSize="8" fill={muted} textAnchor="end">{Math.round(v * 10) / 10}</text>
-      ))}
-      {baseline && (
-        <>
-          <line x1={padLeft} x2={w - padRight} y1={y(baseline)} y2={y(baseline)} stroke="#8C4A2A" strokeDasharray="4 4" strokeWidth="1" />
-          <text x={w - padRight} y={y(baseline) - 4} fontSize="9" fill="#8C4A2A" fontWeight="700" textAnchor="end">{(target.hold ? "Hold " : "Target ") + baseline + "kg" + (target.estimated ? " (est.)" : "")}</text>
-        </>
+    <>
+      <svg width="100%" viewBox={"0 0 " + w + " " + h}>
+        {[min + 2, mid, max - 2].map((v, i) => (
+          <text key={i} x={padLeft - 6} y={y(v) + 3} fontSize="8" fill={muted} textAnchor="end">{Math.round(v * 10) / 10}</text>
+        ))}
+        {baseline && (
+          <>
+            <line x1={padLeft} x2={w - padRight} y1={y(baseline)} y2={y(baseline)} stroke="#8C4A2A" strokeDasharray="4 4" strokeWidth="1" />
+            <text x={w - padRight} y={y(baseline) - 4} fontSize="9" fill="#8C4A2A" fontWeight="700" textAnchor="end">{(target.hold ? "Hold " : "Target ") + baseline + "kg" + (target.estimated ? " (est.)" : "") + (!target.hold && segEnd ? " by wk " + segEnd : "")}</text>
+          </>
+        )}
+        <polyline points={points} fill="none" stroke={gold} strokeWidth="2" />
+        {data.map((d, i) => <circle key={i} cx={x(i)} cy={y(d.weight)} r="3" fill={gold} />)}
+        <text x={x(lastIdx)} y={y(data[lastIdx].weight) - 9} fontSize="11" fontWeight="700" fill={gold} textAnchor="middle">{(isPR ? "★ " : "") + data[lastIdx].weight + "kg"}</text>
+        {data.map((d, i) => (i === 0 || i === lastIdx) &&
+          <text key={i} x={x(i)} y={h - 4} fontSize="9" fill={muted} textAnchor={i === 0 ? "start" : "end"}>{d.date}</text>)}
+      </svg>
+      {target && phaseEndTarget && segEnd && (
+        <div style={{ fontSize: 10.5, color: "#6B6F63", marginTop: 4 }}>
+          {target.hold ? "Hold" : "Target"}: <strong style={{ color: "#4A4D42" }}>{target.value}kg</strong> by week {segEnd} · <strong style={{ color: "#4A4D42" }}>~{phaseEndTarget.value}kg</strong> by end of {phaseName}
+        </div>
       )}
-      <polyline points={points} fill="none" stroke={gold} strokeWidth="2" />
-      {data.map((d, i) => <circle key={i} cx={x(i)} cy={y(d.weight)} r="3" fill={gold} />)}
-      <text x={x(lastIdx)} y={y(data[lastIdx].weight) - 9} fontSize="11" fontWeight="700" fill={gold} textAnchor="middle">{(isPR ? "★ " : "") + data[lastIdx].weight + "kg"}</text>
-      {data.map((d, i) => (i === 0 || i === lastIdx) &&
-        <text key={i} x={x(i)} y={h - 4} fontSize="9" fill={muted} textAnchor={i === 0 ? "start" : "end"}>{d.date}</text>)}
-    </svg>
+    </>
   );
 }
 
@@ -1117,12 +1143,12 @@ function BodyForm({ onSubmit, initial, lastNeck }) {
     <FormShell>
       <DateField date={date} setDate={setDate} />
       <FieldRow>
-        <input style={inputStyle} placeholder="Weight (kg)" value={weight} onChange={e => setWeight(e.target.value)} />
-        <input style={inputStyle} placeholder="Waist (cm)" value={waist} onChange={e => setWaist(e.target.value)} />
+        <input style={inputStyle} inputMode="decimal" placeholder="Weight (kg)" value={weight} onChange={e => setWeight(e.target.value)} />
+        <input style={inputStyle} inputMode="decimal" placeholder="Waist (cm)" value={waist} onChange={e => setWaist(e.target.value)} />
       </FieldRow>
       <FieldRow>
-        <input style={inputStyle} placeholder="Body fat % (optional)" value={bf} onChange={e => setBf(e.target.value)} />
-        <input style={inputStyle} placeholder="Neck (cm, optional)" value={neck} onChange={e => setNeck(e.target.value)} />
+        <input style={inputStyle} inputMode="decimal" placeholder="Body fat % (optional)" value={bf} onChange={e => setBf(e.target.value)} />
+        <input style={inputStyle} inputMode="decimal" placeholder="Neck (cm, optional)" value={neck} onChange={e => setNeck(e.target.value)} />
       </FieldRow>
       {navyEstimate != null && (
         <button type="button" onClick={() => setBf(String(navyEstimate))}
@@ -1153,7 +1179,7 @@ function SleepForm({ onSubmit, initial }) {
     <FormShell>
       <DateField date={date} setDate={setDate} />
       <FieldRow>
-        <input style={inputStyle} placeholder="Hours slept" value={hours} onChange={e => setHours(e.target.value)} />
+        <input style={inputStyle} inputMode="decimal" placeholder="Hours slept" value={hours} onChange={e => setHours(e.target.value)} />
       </FieldRow>
       <div style={{ marginBottom: 8 }}>
         <div style={{ fontSize: 11, color: "#6B6F63", marginBottom: 4 }}>Sleep quality</div>
@@ -1249,18 +1275,19 @@ function SessionForm({ sessions, phaseIdx, weekInPhase, priorSessions, initial, 
         const repsArr = ((rows[name] && rows[name].reps) || "").split(",");
         const hasData = rows[name] && rows[name].weight;
         return (
-          <div key={name} style={{ marginBottom: 10 }}>
-            <div style={{ fontSize: 11.5, color: "#4A4D42", marginBottom: 3, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div key={name} style={{ ...card, padding: "8px 10px", marginBottom: 8 }}>
+            <div style={{ fontSize: 11.5, color: "#4A4D42", marginBottom: 5, display: "flex", alignItems: "center", flexWrap: "wrap", gap: 6 }}>
               <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
                 {name}
                 {hasData && <span style={{ color: "#7A8F5C", fontSize: 10, fontWeight: 700 }} title="Saved">✓</span>}
               </span>
-              <span style={{ color: "#9A9C8E" }}>{displayScheme}</span>
+              <span style={{ color: "#9A9C8E" }}>· {displayScheme}</span>
+              <span style={{ color: "#8A7B5C", fontSize: 10.5 }}>· ⏱ {restNoteFor(name)}</span>
             </div>
-            <input style={{ ...inputStyle, width: "100%", marginBottom: 5, boxSizing: "border-box" }} inputMode="decimal" placeholder="Weight (kg)" value={(rows[name] && rows[name].weight) != null ? rows[name].weight : ""} onChange={e => updateRow(name, "weight", e.target.value)} />
-            <div style={{ display: "flex", gap: 6 }}>
+            <div style={{ display: "flex", gap: 6, justifyContent: "flex-start" }}>
+              <input style={{ ...inputStyle, flex: "0 0 62px", width: 62, textAlign: "center" }} inputMode="decimal" placeholder="kg" value={(rows[name] && rows[name].weight) != null ? rows[name].weight : ""} onChange={e => updateRow(name, "weight", e.target.value)} />
               {Array.from({ length: setCount }).map((_, i) => (
-                <input key={i} style={{ ...inputStyle, textAlign: "center", minWidth: 0 }} inputMode="numeric" pattern="[0-9]*" placeholder={"Set " + (i + 1)} value={repsArr[i] || ""} onChange={e => updateRepSet(name, i, e.target.value.replace(/[^0-9]/g, ""), setCount)} />
+                <input key={i} style={{ ...inputStyle, flex: "0 0 38px", width: 38, textAlign: "center", padding: "8px 4px" }} inputMode="numeric" pattern="[0-9]*" placeholder={"" + (i + 1)} value={repsArr[i] || ""} onChange={e => updateRepSet(name, i, e.target.value.replace(/[^0-9]/g, ""), setCount)} />
               ))}
             </div>
             {rows[name] && rows[name].bumped && (
@@ -1274,20 +1301,68 @@ function SessionForm({ sessions, phaseIdx, weekInPhase, priorSessions, initial, 
   );
 }
 
-function RunForm({ onSubmit, initial }) {
-  const [distance, setDistance] = useState(initial ? initial.distance : ""), [duration, setDuration] = useState(initial ? initial.duration : ""), [continuous, setContinuous] = useState(initial ? initial.continuous : false);
+function RunForm({ onSubmit, initial, lastType }) {
+  const [type, setType] = useState(initial ? (initial.type || "continuous") : (lastType || "continuous"));
   const [date, setDate] = useState(initial ? initial.date : localDateStr());
+  const [week, setWeek] = useState(initial && initial.type === "c25k" ? initial.week : 1);
+  const [day, setDay] = useState(initial && initial.type === "c25k" ? initial.day : 1);
+  const [minutesRun, setMinutesRun] = useState(initial && initial.type === "c25k" ? initial.minutesRun : "");
+  const [distance, setDistance] = useState(initial && initial.type !== "c25k" ? initial.distance : "");
+  const [duration, setDuration] = useState(initial && initial.type !== "c25k" ? initial.duration : "");
+  const [difficulty, setDifficulty] = useState(initial && initial.type !== "c25k" ? (initial.difficulty || "") : "");
+
+  const expected = C25K_SCHEDULE[week] ? C25K_SCHEDULE[week][day - 1] : null;
+
+  const submit = () => {
+    if (type === "c25k") {
+      if (!minutesRun) return;
+      onSubmit({ type: "c25k", week: week, day: day, minutesRun: minutesRun, date: date });
+    } else {
+      if (!distance || !duration) return;
+      onSubmit({ type: "continuous", distance: distance, duration: duration, difficulty: difficulty, date: date });
+    }
+  };
+
+  const toggleStyle = active => ({
+    flex: 1, padding: "8px 0", borderRadius: 6, border: "none", cursor: "pointer", fontWeight: 700, fontSize: 12.5,
+    background: active ? gold : "#E4DFD1", color: active ? "#201B10" : "#6B6F63",
+  });
+
   return (
     <FormShell>
       <DateField date={date} setDate={setDate} />
       <FieldRow>
-        <input style={inputStyle} placeholder="Distance (km)" value={distance} onChange={e => setDistance(e.target.value)} />
-        <input style={inputStyle} placeholder="Duration (min)" value={duration} onChange={e => setDuration(e.target.value)} />
+        <button type="button" style={toggleStyle(type === "c25k")} onClick={() => setType("c25k")}>C25K session</button>
+        <button type="button" style={toggleStyle(type === "continuous")} onClick={() => setType("continuous")}>Continuous run</button>
       </FieldRow>
-      <label style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8, fontSize: 12, color: "#4A4D42" }}>
-        <input type="checkbox" checked={continuous} onChange={e => setContinuous(e.target.checked)} /> Uninterrupted run (no walk breaks)
-      </label>
-      <button style={submitStyle} onClick={() => distance && duration && onSubmit({ distance, duration, continuous, date })}>{initial ? "Save changes" : "Save entry"}</button>
+      {type === "c25k" ? (
+        <>
+          <FieldRow>
+            <select style={{ ...inputStyle, width: "100%" }} value={week} onChange={e => setWeek(Number(e.target.value))}>
+              {Object.keys(C25K_SCHEDULE).map(w => <option key={w} value={w}>Week {w}</option>)}
+            </select>
+            <select style={{ ...inputStyle, width: "100%" }} value={day} onChange={e => setDay(Number(e.target.value))}>
+              <option value={1}>Day 1</option><option value={2}>Day 2</option><option value={3}>Day 3</option>
+            </select>
+          </FieldRow>
+          {expected != null && <div style={{ fontSize: 11, color: "#8A7B5C", marginBottom: 6 }}>Expected: ~{expected} min running</div>}
+          <input style={{ ...inputStyle, width: "100%", marginBottom: 8, boxSizing: "border-box" }} inputMode="decimal" placeholder="Minutes actually run" value={minutesRun} onChange={e => setMinutesRun(e.target.value)} />
+        </>
+      ) : (
+        <>
+          <FieldRow>
+            <input style={inputStyle} inputMode="decimal" placeholder="Distance (km)" value={distance} onChange={e => setDistance(e.target.value)} />
+            <input style={inputStyle} inputMode="decimal" placeholder="Duration (min)" value={duration} onChange={e => setDuration(e.target.value)} />
+          </FieldRow>
+          <div style={{ fontSize: 11, color: "#6B6F63", marginBottom: 6 }}>Difficulty</div>
+          <FieldRow>
+            {["Easy", "Moderate", "Hard"].map(d => (
+              <button key={d} type="button" style={toggleStyle(difficulty === d)} onClick={() => setDifficulty(d)}>{d}</button>
+            ))}
+          </FieldRow>
+        </>
+      )}
+      <button style={{ ...submitStyle, width: "100%", marginTop: 4 }} onClick={submit}>{initial ? "Save changes" : "Save entry"}</button>
     </FormShell>
   );
 }
@@ -1365,12 +1440,12 @@ function AddToLibraryForm({ phaseIdx, onSubmit }) {
           </div>
           <input style={{ ...inputStyle, width: "100%", marginBottom: 8 }} placeholder="Meal name" value={name} onChange={e => setName(e.target.value)} />
           <FieldRow>
-            <input style={inputStyle} placeholder="Calories" value={kcal} onChange={e => setKcal(e.target.value)} />
-            <input style={inputStyle} placeholder="Protein (g)" value={protein} onChange={e => setProtein(e.target.value)} />
+            <input style={inputStyle} inputMode="decimal" placeholder="Calories" value={kcal} onChange={e => setKcal(e.target.value)} />
+            <input style={inputStyle} inputMode="decimal" placeholder="Protein (g)" value={protein} onChange={e => setProtein(e.target.value)} />
           </FieldRow>
           <FieldRow>
-            <input style={inputStyle} placeholder="Fat (g)" value={fat} onChange={e => setFat(e.target.value)} />
-            <input style={inputStyle} placeholder="Carbs (g)" value={carbs} onChange={e => setCarbs(e.target.value)} />
+            <input style={inputStyle} inputMode="decimal" placeholder="Fat (g)" value={fat} onChange={e => setFat(e.target.value)} />
+            <input style={inputStyle} inputMode="decimal" placeholder="Carbs (g)" value={carbs} onChange={e => setCarbs(e.target.value)} />
           </FieldRow>
           {preview && (
             <div style={{ fontSize: 11, color: "#6B6F63", marginBottom: 8 }}>
@@ -1482,12 +1557,12 @@ function MealForm({ onSubmit, initial, savedMeals, onDeleteSavedMeal }) {
           )}
           <input style={{ ...inputStyle, width: "100%", marginBottom: 8 }} placeholder="Name (optional, e.g. Oats + protein)" value={meal} onChange={e => setMeal(e.target.value)} />
           <FieldRow>
-            <input style={inputStyle} placeholder="Calories" value={kcal} onChange={e => setKcal(e.target.value)} />
-            <input style={inputStyle} placeholder="Protein (g)" value={protein} onChange={e => setProtein(e.target.value)} />
+            <input style={inputStyle} inputMode="decimal" placeholder="Calories" value={kcal} onChange={e => setKcal(e.target.value)} />
+            <input style={inputStyle} inputMode="decimal" placeholder="Protein (g)" value={protein} onChange={e => setProtein(e.target.value)} />
           </FieldRow>
           <FieldRow>
-            <input style={inputStyle} placeholder="Fat (g)" value={fat} onChange={e => setFat(e.target.value)} />
-            <input style={inputStyle} placeholder="Carbs (g)" value={carbs} onChange={e => setCarbs(e.target.value)} />
+            <input style={inputStyle} inputMode="decimal" placeholder="Fat (g)" value={fat} onChange={e => setFat(e.target.value)} />
+            <input style={inputStyle} inputMode="decimal" placeholder="Carbs (g)" value={carbs} onChange={e => setCarbs(e.target.value)} />
           </FieldRow>
           {!initial && (
             <label style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8, fontSize: 12, color: "#4A4D42" }}>
@@ -1505,6 +1580,7 @@ function MealForm({ onSubmit, initial, savedMeals, onDeleteSavedMeal }) {
 function App() {
   const [tab, setTab] = useState("home");
   const [mobilitySubTab, setMobilitySubTab] = useState("ankle");
+  const [runSubTab, setRunSubTab] = useState("c25k");
   const [bodySubTab, setBodySubTab] = useState("measurements");
   const [viewPhaseIdx, setViewPhaseIdx] = useState(null);
   const prevTabRef = useRef("home");
@@ -1970,6 +2046,7 @@ function App() {
                 <div style={{ fontSize: 11, color: "#8A7B5C", marginBottom: 8 }}>Optimal {kcalRange.optimalMin}–{kcalRange.optimalMax} kcal</div>
                 <div style={{ fontSize: 12, color: "#4A4D42", marginBottom: 4 }}>{nutritionTarget.fat}g fat · {nutritionTarget.carbs}g carbs</div>
                 <div style={{ fontSize: 11.5, color: "#8A7B5C" }}>Protein — floor {macroProtein.floor}g · optimal {macroProtein.optimal}g (1.6–2.0g/kg, from your last logged weight)</div>
+                <div style={{ fontSize: 11, color: "#8A7B5C", marginTop: 6 }}>Hydration — ~35ml/kg bodyweight (~2.8L at 80kg) + 500-750ml extra on training days. Water, tea, coffee, and other fluids all count — juice hydrates too but still needs to be logged for its calories.</div>
                 <div style={{ fontSize: 10.5, color: "#6B6F63", fontStyle: "italic", marginTop: 8 }}>Log meals and see this broken down day by day on the Nutrition page.</div>
               </div>
               <div style={{ ...card, padding: "12px 14px" }}>
@@ -2009,10 +2086,10 @@ function App() {
                 {(weightTrend.length >= 2 || bfTrend.length >= 2) && (
                   <div style={{ ...card, padding: 14, marginBottom: 16 }}>
                     <div style={{ fontSize: 12, textTransform: "uppercase", color: "#6B6F63", marginBottom: 6 }}>Weight trend</div>
-                    <MiniChart data={weightTrend} baseline={target.weight} unit="kg" />
+                    <MiniChart data={weightTrend} baseline={target.weight} unit="kg" label={target.label} />
                     {bfTrend.length >= 2 && (<>
                       <div style={{ fontSize: 12, textTransform: "uppercase", color: "#6B6F63", margin: "12px 0 6px" }}>Body fat % trend</div>
-                      <MiniChart data={bfTrend} baseline={target.bf} unit="%" />
+                      <MiniChart data={bfTrend} baseline={target.bf} unit="%" label={target.label} />
                     </>)}
                   </div>
                 )}
@@ -2104,16 +2181,23 @@ function App() {
                     </div>
                   ) : null;
                 })()}
-                <ExerciseMiniChart data={chartData} target={chartExercise ? data.lockedTargets[chartExercise] : null} isPR={(() => {
-                  if (!chartExercise || chartData.length === 0) return false;
-                  const allWeights = data.sessions.filter(s => !isDeloadForDate(s.date)).flatMap(s => {
-                    const f = s.exercises.find(e => e.name === chartExercise);
-                    return f && f.weight !== "" ? [parseFloat(f.weight)] : [];
-                  });
-                  if (!allWeights.length) return false;
-                  const bestEver = REVERSE_PROGRESS.includes(chartExercise) ? Math.min(...allWeights) : Math.max(...allWeights);
-                  return chartData[chartData.length - 1].weight === bestEver;
-                })()} />
+                {(() => {
+                  const target = chartExercise ? data.lockedTargets[chartExercise] : null;
+                  const segInfo = chartExercise ? phaseSegmentInfo(phaseIdx, weekInPhase) : null;
+                  const phaseEndTarget = target && !target.hold && chartExercise ? computeExerciseTarget(chartExercise, data.sessions, PHASES[phaseIdx].weeks) : null;
+                  return (
+                    <ExerciseMiniChart data={chartData} target={target} phaseEndTarget={phaseEndTarget} segEnd={segInfo ? segInfo.segEnd : null} phaseName={PHASES[phaseIdx].name} isPR={(() => {
+                      if (!chartExercise || chartData.length === 0) return false;
+                      const allWeights = data.sessions.filter(s => !isDeloadForDate(s.date)).flatMap(s => {
+                        const f = s.exercises.find(e => e.name === chartExercise);
+                        return f && f.weight !== "" ? [parseFloat(f.weight)] : [];
+                      });
+                      if (!allWeights.length) return false;
+                      const bestEver = REVERSE_PROGRESS.includes(chartExercise) ? Math.min(...allWeights) : Math.max(...allWeights);
+                      return chartData[chartData.length - 1].weight === bestEver;
+                    })()} />
+                  );
+                })()}
                 {chartExercise && phaseIdx !== 2 && (() => {
                   const projection = computeProjection(chartExercise, data.sessions, phaseIdx, weekInPhase);
                   return projection ? (
@@ -2156,35 +2240,67 @@ function App() {
           </div>
         )}
 
-        {tab === "run" && (
-          <div>
-            <AddButton label={editingRunIdx !== null ? "Editing run — cancel" : "Log a run"} onClick={() => { if (editingRunIdx !== null) { setEditingRunIdx(null); setShowForm(null); } else setShowForm(showForm === "run" ? null : "run"); }} />
-            {showForm === "run" && (
-              <RunForm
-                initial={editingRunIdx !== null ? data.runs[editingRunIdx] : null}
-                onSubmit={e => {
-                  if (editingRunIdx !== null) { updateRun(editingRunIdx, e); setEditingRunIdx(null); }
-                  else addRun(e);
-                  setShowForm(null);
-                }}
-              />
-            )}
-            {data.runs.length > 0 && <div style={{ fontSize: 12, textTransform: "uppercase", color: "#8FA38C", marginBottom: 8 }}>Run history — last 2 weeks</div>}
-            {data.runs.length === 0 ? <EmptyState text="Running starts week 5 of Phase 1." /> :
-              data.runs.slice(0, runsShown).map((r, i) => (
-                <Entry key={i} onEdit={() => { setEditingRunIdx(i); setShowForm("run"); }} onDelete={() => { if (editingRunIdx === i) { setEditingRunIdx(null); setShowForm(null); } deleteRun(i); }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", paddingRight: 48 }}>
-                    <div>
-                      <div style={{ fontSize: 15, fontWeight: 600 }}>{r.distance}km · {r.duration}min</div>
-                      <div style={{ fontSize: 11, color: r.continuous ? "#7A8F5C" : "#8C4A2A" }}>{r.continuous ? "Uninterrupted" : "Run/walk intervals"}</div>
-                    </div>
-                    <div style={{ fontSize: 11, color: "#6B6F63" }}>{formatShortDate(r.date)}</div>
-                  </div>
-                </Entry>
-              ))}
-            <ShowMoreButton remaining={data.runs.length - runsShown} onClick={() => setRunsExtra(v => v + 10)} />
-          </div>
-        )}
+        {tab === "run" && (() => {
+          const c25kRuns = data.runs.filter(r => r.type === "c25k");
+          const continuousRuns = data.runs.filter(r => r.type !== "c25k");
+          const lastType = data.runs.length ? (data.runs[0].type || "continuous") : "continuous";
+          const runDistanceTrend = continuousRuns.filter(r => r.distance).map(r => ({ date: formatChartDate(r.date), value: parseFloat(r.distance) })).reverse();
+          const shownRuns = runSubTab === "c25k" ? c25kRuns : continuousRuns;
+          return (
+            <div>
+              <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
+                <SubTab label="C25K" active={runSubTab === "c25k"} onClick={() => setRunSubTab("c25k")} />
+                <SubTab label="Continuous" active={runSubTab === "continuous"} onClick={() => setRunSubTab("continuous")} />
+              </div>
+              <AddButton label={editingRunIdx !== null ? "Editing run — cancel" : "Log a run"} onClick={() => { if (editingRunIdx !== null) { setEditingRunIdx(null); setShowForm(null); } else setShowForm(showForm === "run" ? null : "run"); }} />
+              {showForm === "run" && (
+                <RunForm
+                  initial={editingRunIdx !== null ? data.runs[editingRunIdx] : null}
+                  lastType={lastType}
+                  onSubmit={e => {
+                    if (editingRunIdx !== null) { updateRun(editingRunIdx, e); setEditingRunIdx(null); }
+                    else addRun(e);
+                    setShowForm(null);
+                  }}
+                />
+              )}
+              {runSubTab === "continuous" && runDistanceTrend.length >= 2 && (
+                <div style={{ ...card, padding: 14, marginBottom: 16 }}>
+                  <div style={{ fontSize: 12, textTransform: "uppercase", color: "#6B6F63", marginBottom: 6 }}>Distance trend</div>
+                  <MiniChart data={runDistanceTrend} baseline={null} unit="km" />
+                </div>
+              )}
+              {shownRuns.length > 0 && <div style={{ fontSize: 12, textTransform: "uppercase", color: "#8FA38C", marginBottom: 8 }}>{runSubTab === "c25k" ? "C25K sessions" : "Run history"}</div>}
+              {shownRuns.length === 0 ? (
+                <EmptyState text={runSubTab === "c25k" ? "Running starts week 5 of Phase 1. Log each C25K session as you go." : "Log a continuous run once you're past intervals."} />
+              ) : (
+                shownRuns.map(r => {
+                  const i = data.runs.indexOf(r);
+                  const pace = r.type !== "c25k" ? formatPace(r.distance, r.duration) : null;
+                  return (
+                    <Entry key={i} onEdit={() => { setEditingRunIdx(i); setShowForm("run"); }} onDelete={() => { if (editingRunIdx === i) { setEditingRunIdx(null); setShowForm(null); } deleteRun(i); }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingRight: 48 }}>
+                        {r.type === "c25k" ? (
+                          <div>
+                            <div style={{ fontSize: 15, fontWeight: 600 }}>Week {r.week}, Day {r.day}</div>
+                            <div style={{ fontSize: 11, color: "#6B6F63" }}>{r.minutesRun} min run{C25K_SCHEDULE[r.week] ? " (expected ~" + C25K_SCHEDULE[r.week][r.day - 1] + " min)" : ""}</div>
+                          </div>
+                        ) : (
+                          <div>
+                            <div style={{ fontSize: 15, fontWeight: 600 }}>{r.distance}km · {r.duration}min{pace ? " · " + pace : ""}</div>
+                            <div style={{ fontSize: 11, color: "#6B6F63" }}>{r.difficulty || "Continuous run"}</div>
+                          </div>
+                        )}
+                        <div style={{ fontSize: 11, color: "#6B6F63" }}>{formatShortDate(r.date)}</div>
+                      </div>
+                    </Entry>
+                  );
+                })
+              )}
+              <ShowMoreButton remaining={shownRuns.length - runsShown} onClick={() => setRunsExtra(v => v + 10)} />
+            </div>
+          );
+        })()}
 
         {tab === "mobility" && (
           <div>
