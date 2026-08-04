@@ -71,22 +71,22 @@ const START_WEIGHTS = { "Bench Press": 50, "Pull-Downs": 42.5, "Leg Press": 60, 
 const PHASE_SESSIONS = [
   { label: "3x/week full body — A / B / C rotation", framing: "Rebuild first: prioritize clean form and consistency as strength returns — weight increases will come as capability rebuilds, not before.", deload: "Deload every 5th week — same exercises, ~50% less volume.",
     sessions: {
-      "Session A": [["Bench Press", "3 x 6-8"], ["Pull-Downs", "3 x 8-10"], ["Leg Press", "4 x 10-12"], ["Shoulder Press", "3 x 8-10"], ["Leg Curl", "3 x 10-12"], ["Overhead Triceps Extension", "2 x 10-12"], ["Plank", "2"]],
-      "Session B": [["Low Rows", "3 x 6-8"], ["DB Bench Press", "3 x 8-10"], ["RDL", "3 x 10-12"], ["Lateral Raises", "3 x 12-15"], ["Preacher Curl (machine)", "3 x 12-15"], ["Bicycle Crunch", "2"]],
-      "Session C": [["Incline Press", "3 x 8-10"], ["Cable Row", "3 x 8-10"], ["Leg Press", "4 x 10-12"], ["Calf Raises", "3 x 12-15"], ["Triceps Pushdown", "2 x 10-12"], ["Rear Delt Fly", "2 x 12-15"], ["Plank", "2"]],
+      "Session A": [["Bench Press", "3 x 6-8"], ["Pull-Downs", "3 x 8-10"], ["Leg Press", "3 x 10-12"], ["Shoulder Press", "3 x 8-10"], ["Leg Curl", "3 x 10-12"], ["Overhead Triceps Extension", "2 x 10-12"], ["Plank", "2"]],
+      "Session B": [["Low Rows", "3 x 6-8"], ["DB Bench Press", "3 x 8-10"], ["RDL", "3 x 10-12"], ["Leg Press", "3 x 10-12"], ["Lateral Raises", "3 x 12-15"], ["Preacher Curl (machine)", "3 x 12-15"], ["Bicycle Crunch", "2"]],
+      "Session C": [["Incline Press", "3 x 8-10"], ["Cable Row", "3 x 8-10"], ["Leg Press", "3 x 10-12"], ["Calf Raises", "3 x 12-15"], ["Triceps Pushdown", "2 x 10-12"], ["Rear Delt Fly", "2 x 12-15"], ["Plank", "2"]],
     }},
   { label: "4x/week Upper / Lower split", framing: "Chase progress: this is the main muscle-building block — push loads and volume.", deload: "Deload every 5th week — same exercises, ~50% less volume.",
     sessions: {
       "Upper A": [["Bench Press", "3 x 6-8"], ["Pull-Ups / Pull-Downs", "3 x 6-8"], ["Incline DB Press", "3 x 8-10"], ["Cable Row", "3 x 8-10"], ["Lateral Raises", "3 x 12-15"], ["Triceps Pushdown", "2 x 10-12"], ["Overhead Triceps Extension", "2 x 10-12"]],
       "Lower A": [["Hack Squat", "4 x 8-10"], ["RDL", "3 x 8-10"], ["Leg Curl", "3 x 10-12"], ["Calf Raises", "3 x 10-15"], ["Plank", "2"]],
-      "Upper B": [["Shoulder Press", "3 x 6-8"], ["Low Rows", "3 x 8-10"], ["DB Bench Press", "3 x 8-10"], ["Chest-Supported Row", "3 x 10-12"], ["Hammer Curl (machine)", "3 x 10-12"], ["Dips (assisted)", "2 x 10-12"], ["Rear Delt Fly", "2 x 12-15"]],
+      "Upper B": [["Shoulder Press", "3 x 6-8"], ["Low Rows", "3 x 8-10"], ["DB Bench Press", "3 x 8-10"], ["Chest-Supported Row", "3 x 10-12"], ["Dips (assisted)", "2 x 10-12"], ["Hammer Curl (machine)", "3 x 10-12"], ["Rear Delt Fly", "2 x 12-15"]],
       "Lower B": [["Leg Press", "4 x 8-10"], ["Bulgarian Split Squat*", "3 x 10-12"], ["Leg Curl", "3 x 10-12"], ["Calf Raises", "3 x 10-15"], ["Bicycle Crunch", "2"]],
     }},
   { label: "3x/week full body — A / B / C (maintenance)", framing: "Hold, don't chase: match or hold Phase 2 end-weights. A flat or slightly-down week is expected, not a failure.", deload: "One deload around week 4 of this phase.",
     sessions: {
-      "Session A": [["Bench Press", "3 x 6-8"], ["Pull-Downs", "3 x 8-10"], ["Leg Press", "4 x 10-12"], ["Shoulder Press", "3 x 8-10"], ["Leg Curl", "3 x 10-12"], ["Overhead Triceps Extension", "2 x 10-12"], ["Plank", "2"]],
-      "Session B": [["Low Rows", "3 x 6-8"], ["DB Bench Press", "3 x 8-10"], ["RDL", "3 x 10-12"], ["Lateral Raises", "3 x 12-15"], ["Preacher Curl (machine)", "3 x 12-15"], ["Bicycle Crunch", "2"]],
-      "Session C": [["Incline Press", "3 x 8-10"], ["Cable Row", "3 x 8-10"], ["Leg Press", "4 x 10-12"], ["Calf Raises", "3 x 12-15"], ["Triceps Pushdown", "2 x 10-12"], ["Rear Delt Fly", "2 x 12-15"], ["Plank", "2"]],
+      "Session A": [["Bench Press", "3 x 6-8"], ["Pull-Downs", "3 x 8-10"], ["Leg Press", "3 x 10-12"], ["Shoulder Press", "3 x 8-10"], ["Leg Curl", "3 x 10-12"], ["Overhead Triceps Extension", "2 x 10-12"], ["Plank", "2"]],
+      "Session B": [["Low Rows", "3 x 6-8"], ["DB Bench Press", "3 x 8-10"], ["RDL", "3 x 10-12"], ["Leg Press", "3 x 10-12"], ["Lateral Raises", "3 x 12-15"], ["Preacher Curl (machine)", "3 x 12-15"], ["Bicycle Crunch", "2"]],
+      "Session C": [["Incline Press", "3 x 8-10"], ["Cable Row", "3 x 8-10"], ["Leg Press", "3 x 10-12"], ["Calf Raises", "3 x 12-15"], ["Triceps Pushdown", "2 x 10-12"], ["Rear Delt Fly", "2 x 12-15"], ["Plank", "2"]],
     }},
 ];
 const REVERSE_PROGRESS = ["Dips (assisted)"];
