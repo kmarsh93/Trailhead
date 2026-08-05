@@ -56,6 +56,10 @@ const EXERCISE_SUBSTITUTES = {
   "Hack Squat": "No hack squat machine? Leg press (expect to load noticeably lighter) or goblet squats.",
   "Rear Delt Fly": "No machine? Bent-over DB rear delt fly.",
   "Overhead Triceps Extension": "No cable station? Single DB overhead triceps extension.",
+  "Ab Crunch Machine": "No ab crunch machine? Cable crunch, or weighted sit-ups holding a plate.",
+  "Captain's Chair Leg Raise": "No captain's chair? Lying leg raises on a bench, or reverse crunches.",
+  "Weighted Sit-up": "No bench or plate free? Bodyweight sit-ups, focusing on full range of motion.",
+  "Twisted Knee Raise": "No captain's chair? Standing or lying oblique crunches, or a cable woodchopper.",
 };
 const EXERCISE_ESTIMATE_FROM = {
   "Rear Delt Fly": { from: "Lateral Raises", ratio: 0.9 },
@@ -66,14 +70,14 @@ const EXERCISE_ESTIMATE_FROM = {
   "Pull-Ups / Pull-Downs": { from: "Pull-Downs", ratio: 1 },
   "Shoulder Press": { from: "Shoulder Press (DB)", ratio: 1 },
 };
-const START_WEIGHTS = { "Bench Press": 50, "Pull-Downs": 42.5, "Leg Press": 60, "Shoulder Press (DB)": 35, "Leg Curl": 22.5, "Low Rows": 35, "DB Bench Press": 40, "RDL": 25, "Lateral Raises": 4.5, "Preacher Curl (machine)": 20, "Incline Press": 20, "Cable Row": 40, "Calf Raises": 45, "Triceps Pushdown": 12.5, "Hammer Curl (machine)": 17, "Dips (assisted)": 29 };
+const START_WEIGHTS = { "Bench Press": 50, "Pull-Downs": 42.5, "Leg Press": 60, "Shoulder Press (DB)": 35, "Leg Curl": 22.5, "Low Rows": 35, "DB Bench Press": 40, "RDL": 25, "Lateral Raises": 4.5, "Preacher Curl (machine)": 20, "Incline Press": 20, "Cable Row": 40, "Calf Raises": 45, "Triceps Pushdown": 12.5, "Hammer Curl (machine)": 17, "Dips (assisted)": 29, "Ab Crunch Machine": 15, "Captain's Chair Leg Raise": 0, "Weighted Sit-up": 5, "Twisted Knee Raise": 0 };
 
 const PHASE_SESSIONS = [
   { label: "3x/week full body — A / B / C rotation", framing: "Rebuild first: prioritize clean form and consistency as strength returns — weight increases will come as capability rebuilds, not before.", deload: "Deload every 5th week — same exercises, ~50% less volume.",
     sessions: {
-      "Session A": [["Bench Press", "3 x 6-8"], ["Pull-Downs", "3 x 8-10"], ["Leg Press", "3 x 10-12"], ["Shoulder Press", "3 x 8-10"], ["Leg Curl", "3 x 10-12"], ["Overhead Triceps Extension", "2 x 10-12"], ["Plank", "2"]],
-      "Session B": [["Low Rows", "3 x 6-8"], ["DB Bench Press", "3 x 8-10"], ["RDL", "3 x 10-12"], ["Leg Press", "3 x 10-12"], ["Lateral Raises", "3 x 12-15"], ["Preacher Curl (machine)", "3 x 12-15"], ["Bicycle Crunch", "2"]],
-      "Session C": [["Incline Press", "3 x 8-10"], ["Cable Row", "3 x 8-10"], ["Leg Press", "3 x 10-12"], ["Calf Raises", "3 x 12-15"], ["Triceps Pushdown", "2 x 10-12"], ["Rear Delt Fly", "2 x 12-15"], ["Plank", "2"]],
+      "Session A": [["Bench Press", "3 x 6-8"], ["Pull-Downs", "3 x 8-10"], ["Leg Press", "3 x 10-12"], ["Shoulder Press", "3 x 8-10"], ["Leg Curl", "3 x 10-12"], ["Overhead Triceps Extension", "2 x 10-12"], ["Ab Crunch Machine", "3 x 12-15"]],
+      "Session B": [["Low Rows", "3 x 6-8"], ["DB Bench Press", "3 x 8-10"], ["RDL", "3 x 10-12"], ["Leg Press", "3 x 10-12"], ["Lateral Raises", "3 x 12-15"], ["Preacher Curl (machine)", "3 x 12-15"], ["Captain's Chair Leg Raise", "3 x 10-12"]],
+      "Session C": [["Incline Press", "3 x 8-10"], ["Cable Row", "3 x 8-10"], ["Leg Press", "3 x 10-12"], ["Calf Raises", "3 x 12-15"], ["Triceps Pushdown", "2 x 10-12"], ["Rear Delt Fly", "2 x 12-15"], ["Weighted Sit-up", "3 x 10-12"], ["Twisted Knee Raise", "3 x 10-12"]],
     }},
   { label: "4x/week Upper / Lower split", framing: "Chase progress: this is the main muscle-building block — push loads and volume.", deload: "Deload every 5th week — same exercises, ~50% less volume.",
     sessions: {
@@ -84,13 +88,13 @@ const PHASE_SESSIONS = [
     }},
   { label: "3x/week full body — A / B / C (maintenance)", framing: "Hold, don't chase: match or hold Phase 2 end-weights. A flat or slightly-down week is expected, not a failure.", deload: "One deload around week 4 of this phase.",
     sessions: {
-      "Session A": [["Bench Press", "3 x 6-8"], ["Pull-Downs", "3 x 8-10"], ["Leg Press", "3 x 10-12"], ["Shoulder Press", "3 x 8-10"], ["Leg Curl", "3 x 10-12"], ["Overhead Triceps Extension", "2 x 10-12"], ["Plank", "2"]],
-      "Session B": [["Low Rows", "3 x 6-8"], ["DB Bench Press", "3 x 8-10"], ["RDL", "3 x 10-12"], ["Leg Press", "3 x 10-12"], ["Lateral Raises", "3 x 12-15"], ["Preacher Curl (machine)", "3 x 12-15"], ["Bicycle Crunch", "2"]],
-      "Session C": [["Incline Press", "3 x 8-10"], ["Cable Row", "3 x 8-10"], ["Leg Press", "3 x 10-12"], ["Calf Raises", "3 x 12-15"], ["Triceps Pushdown", "2 x 10-12"], ["Rear Delt Fly", "2 x 12-15"], ["Plank", "2"]],
+      "Session A": [["Bench Press", "3 x 6-8"], ["Pull-Downs", "3 x 8-10"], ["Leg Press", "3 x 10-12"], ["Shoulder Press", "3 x 8-10"], ["Leg Curl", "3 x 10-12"], ["Overhead Triceps Extension", "2 x 10-12"], ["Ab Crunch Machine", "3 x 12-15"]],
+      "Session B": [["Low Rows", "3 x 6-8"], ["DB Bench Press", "3 x 8-10"], ["RDL", "3 x 10-12"], ["Leg Press", "3 x 10-12"], ["Lateral Raises", "3 x 12-15"], ["Preacher Curl (machine)", "3 x 12-15"], ["Captain's Chair Leg Raise", "3 x 10-12"]],
+      "Session C": [["Incline Press", "3 x 8-10"], ["Cable Row", "3 x 8-10"], ["Leg Press", "3 x 10-12"], ["Calf Raises", "3 x 12-15"], ["Triceps Pushdown", "2 x 10-12"], ["Rear Delt Fly", "2 x 12-15"], ["Weighted Sit-up", "3 x 10-12"], ["Twisted Knee Raise", "3 x 10-12"]],
     }},
 ];
 const REVERSE_PROGRESS = ["Dips (assisted)"];
-const ISOLATION_EXERCISES = ["Lateral Raises", "Preacher Curl (machine)", "Calf Raises", "Triceps Pushdown", "Hammer Curl (machine)", "Rear Delt Fly", "Overhead Triceps Extension", "Leg Curl"];
+const ISOLATION_EXERCISES = ["Lateral Raises", "Preacher Curl (machine)", "Calf Raises", "Triceps Pushdown", "Hammer Curl (machine)", "Rear Delt Fly", "Overhead Triceps Extension", "Leg Curl", "Ab Crunch Machine", "Captain's Chair Leg Raise", "Weighted Sit-up", "Twisted Knee Raise"];
 const C25K_SCHEDULE = {
   1: [8, 8, 8], 2: [8.5, 8.5, 8.5], 3: [9, 9, 9], 4: [16, 16, 16],
   5: [15, 16, 20], 6: [18, 20, 25], 7: [25, 25, 25], 8: [28, 28, 28], 9: [30, 30, 30],
@@ -249,6 +253,7 @@ const PROGRESSION_INCREMENT = {
   "Incline Press": 2.5, "Cable Row": 2.5, "Calf Raises": 2.5, "Triceps Pushdown": 1, "Hammer Curl (machine)": 1,
   "Dips (assisted)": 2.5, "Pull-Ups / Pull-Downs": 2.5, "Incline DB Press": 2, "Chest-Supported Row": 2.5,
   "Shoulder Press": 2.5, "Bulgarian Split Squat*": 2.5, "Rear Delt Fly": 1, "Overhead Triceps Extension": 1.5, "Hack Squat": 2.5,
+  "Ab Crunch Machine": 2.5, "Captain's Chair Leg Raise": 1, "Weighted Sit-up": 1, "Twisted Knee Raise": 1,
 };
 function parseScheme(scheme) {
   if (!scheme) return null;
@@ -307,7 +312,7 @@ function bestPriorEntry(sessionLogs, exerciseName) {
       return { weight: found.weight, level };
     }
   }
-  return { weight: START_WEIGHTS[exerciseName] || "", level: null };
+  return { weight: START_WEIGHTS[exerciseName] != null ? START_WEIGHTS[exerciseName] : "", level: null };
 }
 function plateauCheck(sessionLogs, exerciseName) {
   const relevant = [];
@@ -401,6 +406,14 @@ function computeNavyBF(waistCm, neckCm, heightCm) {
   if (!(w > n)) return null;
   const raw = 86.010 * Math.log10(w - n) - 70.041 * Math.log10(h) + 36.76;
   return Math.round(raw * 10) / 10;
+}
+function getNextC25KSession(c25kRuns) {
+  if (!c25kRuns.length) return { week: 1, day: 1 };
+  const sorted = [...c25kRuns].sort((a, b) => b.week - a.week || b.day - a.day);
+  const last = sorted[0];
+  if (last.day < 3) return { week: last.week, day: last.day + 1 };
+  if (last.week < 9) return { week: last.week + 1, day: 1 };
+  return null;
 }
 function formatPace(distanceKm, durationMin) {
   const d = parseFloat(distanceKm), t = parseFloat(durationMin);
@@ -1075,7 +1088,7 @@ function bestPriorWeight(sessionLogs, exerciseName) {
     const found = s.exercises.find(e => e.name === exerciseName);
     if (found && found.weight !== "") return found.weight;
   }
-  return START_WEIGHTS[exerciseName] || "";
+  return START_WEIGHTS[exerciseName] != null ? START_WEIGHTS[exerciseName] : "";
 }
 
 function FormShell({ children }) { return <div style={{ ...card, padding: 14, marginBottom: 14 }}>{children}</div>; }
@@ -1792,13 +1805,15 @@ function App() {
   const p = PHASE_SESSIONS[phaseIdx], phaseColor = PHASES[phaseIdx].color, target = PHASE_TARGET[phaseIdx];
   const todayStr = localDateStr();
   const todayMeals = data.nutrition.filter(n => n.date === todayStr);
-  const todayTotals = todayMeals.reduce((acc, m) => ({ kcal: acc.kcal + Number(m.kcal||0), protein: acc.protein + Number(m.protein||0), fat: acc.fat + Number(m.fat||0), carbs: acc.carbs + Number(m.carbs||0) }), { kcal: 0, protein: 0, fat: 0, carbs: 0 });
+  const todayTotalsRaw = todayMeals.reduce((acc, m) => ({ kcal: acc.kcal + Number(m.kcal||0), protein: acc.protein + Number(m.protein||0), fat: acc.fat + Number(m.fat||0), carbs: acc.carbs + Number(m.carbs||0) }), { kcal: 0, protein: 0, fat: 0, carbs: 0 });
+  const todayTotals = { kcal: Math.round(todayTotalsRaw.kcal), protein: Math.round(todayTotalsRaw.protein * 10) / 10, fat: Math.round(todayTotalsRaw.fat * 10) / 10, carbs: Math.round(todayTotalsRaw.carbs * 10) / 10 };
   const todayComplete = data.nutritionComplete.includes(todayStr);
 
   const weekDates = useMemo(() => getWeekDates(elapsedRaw), [elapsedRaw]);
   const weightsCount = useMemo(() => data.sessions.filter(s => weekIndexOf(s.date) === elapsedRaw).length, [data.sessions, elapsedRaw]);
   const weightsTarget = phaseIdx === 1 ? 4 : 3;
   const runCount = useMemo(() => data.runs.filter(r => weekIndexOf(r.date) === elapsedRaw).length, [data.runs, elapsedRaw]);
+  const nextC25K = useMemo(() => getNextC25KSession(data.runs.filter(r => r.type === "c25k")), [data.runs]);
   const runTarget = runTargetForWeek(phaseIdx, weekInPhase);
   const mobilityCount = useMemo(() => {
     const ankleCount = data.ankle.sessions.filter(s => weekIndexOf(s.date) === elapsedRaw).length;
@@ -1865,7 +1880,7 @@ function App() {
                 <div style={{ fontSize: 12, textTransform: "uppercase", color: muted, marginBottom: 8 }}>This week</div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 }}>
                   <ScorecardTile label="Weights" count={weightsCount} target={weightsTarget} onClick={() => setTab("sessions")} />
-                  <ScorecardTile label="Run" count={runCount} target={runTarget} extra={runTarget === 0 ? "Starts week 5" : null} onClick={() => setTab("run")} />
+                  <ScorecardTile label="Run" count={runCount} target={runTarget} extra={runTarget === 0 ? "Starts week 5" : (nextC25K ? "Next: Wk " + nextC25K.week + " D" + nextC25K.day + " (~" + C25K_SCHEDULE[nextC25K.week][nextC25K.day - 1] + "m)" : null)} onClick={() => setTab("run")} />
                   <ScorecardTile label="Mobility" count={mobilityCount} target={mobilityTarget} onClick={() => setTab("mobility")} />
                   <ScorecardTile label="Nutrition" count={foodWeekStats.logged} target={7} extra={foodWeekStats.logged > 0 ? foodWeekStats.floorMet + "/" + foodWeekStats.logged + " on target" : null} onClick={() => setTab("food")} />
                 </div>
