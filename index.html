@@ -36,6 +36,7 @@ const EXERCISE_SUBSTITUTES = {
   "Bench Press": "No barbell? DB Bench Press or a chest press machine at a similar weight-per-side.",
   "Pull-Downs": "No lat pulldown? Assisted pull-ups work the same pattern.",
   "Leg Press": "No leg press? Goblet squats, or a leg extension + leg curl combo.",
+  "Leg Extension": "No leg extension machine? Bodyweight or banded terminal knee extensions.",
   "Leg Curl": "No leg curl machine? Nordic curls or stability-ball hamstring curls.",
   "Low Rows": "No cable row station? Use a chest-supported row machine.",
   "DB Bench Press": "No dumbbells free? Use a flat bench press machine.",
@@ -71,13 +72,13 @@ const EXERCISE_ESTIMATE_FROM = {
   "Pull-Ups / Pull-Downs": { from: "Pull-Downs", ratio: 1 },
   "Shoulder Press": { from: "Shoulder Press (DB)", ratio: 1 },
 };
-const START_WEIGHTS = { "Bench Press": 50, "Pull-Downs": 42.5, "Leg Press": 60, "Shoulder Press (DB)": 35, "Leg Curl": 22.5, "Low Rows": 35, "DB Bench Press": 40, "RDL": 25, "Lateral Raises": 4.5, "Preacher Curl (machine)": 20, "Incline Press": 20, "Cable Row": 40, "Calf Raises": 45, "Triceps Pushdown": 12.5, "Hammer Curl (machine)": 17, "Dips (assisted)": 29, "Ab Crunch Machine": 15, "Captain's Chair Leg Raise": 0, "Weighted Sit-up": 5, "Twisted Knee Raise": 0, "Pec Deck Fly": 20 };
+const START_WEIGHTS = { "Bench Press": 50, "Pull-Downs": 42.5, "Leg Press": 60, "Shoulder Press (DB)": 35, "Leg Curl": 22.5, "Low Rows": 35, "DB Bench Press": 40, "RDL": 25, "Lateral Raises": 4.5, "Preacher Curl (machine)": 20, "Incline Press": 20, "Cable Row": 40, "Calf Raises": 45, "Triceps Pushdown": 12.5, "Hammer Curl (machine)": 17, "Dips (assisted)": 29, "Ab Crunch Machine": 15, "Captain's Chair Leg Raise": 0, "Weighted Sit-up": 5, "Twisted Knee Raise": 0, "Pec Deck Fly": 20, "Leg Extension": 25 };
 
 const PHASE_SESSIONS = [
   { label: "3x/week full body — A / B / C rotation", framing: "Rebuild first: prioritize clean form and consistency as strength returns — weight increases will come as capability rebuilds, not before.", deload: "Deload every 5th week — same exercises, ~50% less volume.",
     sessions: {
       "Session A": [["Bench Press", "3 x 6-8"], ["Pull-Downs", "3 x 8-10"], ["Leg Press", "3 x 10-12"], ["Shoulder Press", "3 x 8-10"], ["Leg Curl", "3 x 10-12"], ["Pec Deck Fly", "3 x 12-15"], ["Ab Crunch Machine", "3 x 12-15"]],
-      "Session B": [["Cable Row", "3 x 6-8"], ["DB Bench Press", "3 x 8-10"], ["RDL", "3 x 10-12"], ["Leg Press", "3 x 10-12"], ["Lateral Raises", "3 x 12-15"], ["Preacher Curl (machine)", "3 x 12-15"], ["Captain's Chair Leg Raise", "3 x 10-12"]],
+      "Session B": [["Cable Row", "3 x 6-8"], ["DB Bench Press", "3 x 8-10"], ["RDL", "3 x 10-12"], ["Leg Extension", "3 x 10-12"], ["Lateral Raises", "3 x 12-15"], ["Preacher Curl (machine)", "3 x 12-15"], ["Captain's Chair Leg Raise", "3 x 10-12"]],
       "Session C": [["Incline Press", "3 x 8-10"], ["Low Rows", "3 x 8-10"], ["Leg Press", "3 x 10-12"], ["Calf Raises", "3 x 12-15"], ["Overhead Triceps Extension", "3 x 10-12"], ["Rear Delt Fly", "2 x 12-15"], ["Twisted Knee Raise", "3 x 10-12"]],
     }},
   { label: "4x/week Upper / Lower split", framing: "Chase progress: this is the main muscle-building block — push loads and volume.", deload: "Deload every 5th week — same exercises, ~50% less volume.",
@@ -90,12 +91,12 @@ const PHASE_SESSIONS = [
   { label: "3x/week full body — A / B / C (maintenance)", framing: "Hold, don't chase: match or hold Phase 2 end-weights. A flat or slightly-down week is expected, not a failure.", deload: "One deload around week 4 of this phase.",
     sessions: {
       "Session A": [["Bench Press", "3 x 6-8"], ["Pull-Downs", "3 x 8-10"], ["Leg Press", "3 x 10-12"], ["Shoulder Press", "3 x 8-10"], ["Leg Curl", "3 x 10-12"], ["Pec Deck Fly", "3 x 12-15"], ["Ab Crunch Machine", "3 x 12-15"]],
-      "Session B": [["Cable Row", "3 x 6-8"], ["DB Bench Press", "3 x 8-10"], ["RDL", "3 x 10-12"], ["Leg Press", "3 x 10-12"], ["Lateral Raises", "3 x 12-15"], ["Preacher Curl (machine)", "3 x 12-15"], ["Captain's Chair Leg Raise", "3 x 10-12"]],
+      "Session B": [["Cable Row", "3 x 6-8"], ["DB Bench Press", "3 x 8-10"], ["RDL", "3 x 10-12"], ["Leg Extension", "3 x 10-12"], ["Lateral Raises", "3 x 12-15"], ["Preacher Curl (machine)", "3 x 12-15"], ["Captain's Chair Leg Raise", "3 x 10-12"]],
       "Session C": [["Incline Press", "3 x 8-10"], ["Low Rows", "3 x 8-10"], ["Leg Press", "3 x 10-12"], ["Calf Raises", "3 x 12-15"], ["Overhead Triceps Extension", "3 x 10-12"], ["Rear Delt Fly", "2 x 12-15"], ["Twisted Knee Raise", "3 x 10-12"]],
     }},
 ];
 const REVERSE_PROGRESS = ["Dips (assisted)"];
-const ISOLATION_EXERCISES = ["Lateral Raises", "Preacher Curl (machine)", "Calf Raises", "Triceps Pushdown", "Hammer Curl (machine)", "Rear Delt Fly", "Overhead Triceps Extension", "Leg Curl", "Ab Crunch Machine", "Captain's Chair Leg Raise", "Weighted Sit-up", "Twisted Knee Raise", "Pec Deck Fly"];
+const ISOLATION_EXERCISES = ["Lateral Raises", "Preacher Curl (machine)", "Calf Raises", "Triceps Pushdown", "Hammer Curl (machine)", "Rear Delt Fly", "Overhead Triceps Extension", "Leg Curl", "Ab Crunch Machine", "Captain's Chair Leg Raise", "Weighted Sit-up", "Twisted Knee Raise", "Pec Deck Fly", "Leg Extension"];
 const C25K_SCHEDULE = {
   1: [8, 8, 8], 2: [8.5, 8.5, 8.5], 3: [9, 9, 9], 4: [16, 16, 16],
   5: [15, 16, 20], 6: [18, 20, 25], 7: [25, 25, 25], 8: [28, 28, 28], 9: [30, 30, 30],
@@ -249,7 +250,7 @@ function parseSetCount(scheme) {
   return m ? parseInt(m[1], 10) : 3;
 }
 const PROGRESSION_INCREMENT = {
-  "Bench Press": 2.5, "Pull-Downs": 2.5, "Leg Press": 5, "Shoulder Press (DB)": 2, "Leg Curl": 2,
+  "Bench Press": 2.5, "Pull-Downs": 2.5, "Leg Press": 5, "Shoulder Press (DB)": 2, "Leg Curl": 2, "Leg Extension": 2.5,
   "Low Rows": 2.5, "DB Bench Press": 2, "RDL": 2.5, "Lateral Raises": 1, "Preacher Curl (machine)": 2,
   "Incline Press": 2.5, "Cable Row": 2.5, "Calf Raises": 2.5, "Triceps Pushdown": 1, "Hammer Curl (machine)": 1,
   "Dips (assisted)": 2.5, "Pull-Ups / Pull-Downs": 2.5, "Incline DB Press": 2, "Chest-Supported Row": 2.5,
@@ -2235,7 +2236,7 @@ function App() {
             {data.sessions.length === 0 ? <EmptyState text="No sessions logged yet." /> :
               data.sessions.slice(0, sessionsShown).map((s, i) => (
                 <Entry key={i} onEdit={() => { setEditingSessionIdx(i); setShowForm(null); }} onDelete={() => { if (editingSessionIdx === i) setEditingSessionIdx(null); deleteSession(i); }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, paddingRight: 40 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, paddingRight: 48 }}>
                     <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, fontWeight: 600 }}>{s.sessionName}</span>
                     <span style={{ fontSize: 11, color: "#6B6F63" }}>{formatShortDate(s.date)}</span>
                   </div>
