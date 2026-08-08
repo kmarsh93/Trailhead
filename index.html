@@ -60,6 +60,7 @@ const EXERCISE_SUBSTITUTES = {
   "Captain's Chair Leg Raise": "No captain's chair? Lying leg raises on a bench, or reverse crunches.",
   "Weighted Sit-up": "No bench or plate free? Bodyweight sit-ups, focusing on full range of motion.",
   "Twisted Knee Raise": "No captain's chair? Standing or lying oblique crunches, or a cable woodchopper.",
+  "Pec Deck Fly": "No pec deck? Dumbbell fly on a flat bench, or cable crossover.",
 };
 const EXERCISE_ESTIMATE_FROM = {
   "Rear Delt Fly": { from: "Lateral Raises", ratio: 0.9 },
@@ -70,14 +71,14 @@ const EXERCISE_ESTIMATE_FROM = {
   "Pull-Ups / Pull-Downs": { from: "Pull-Downs", ratio: 1 },
   "Shoulder Press": { from: "Shoulder Press (DB)", ratio: 1 },
 };
-const START_WEIGHTS = { "Bench Press": 50, "Pull-Downs": 42.5, "Leg Press": 60, "Shoulder Press (DB)": 35, "Leg Curl": 22.5, "Low Rows": 35, "DB Bench Press": 40, "RDL": 25, "Lateral Raises": 4.5, "Preacher Curl (machine)": 20, "Incline Press": 20, "Cable Row": 40, "Calf Raises": 45, "Triceps Pushdown": 12.5, "Hammer Curl (machine)": 17, "Dips (assisted)": 29, "Ab Crunch Machine": 15, "Captain's Chair Leg Raise": 0, "Weighted Sit-up": 5, "Twisted Knee Raise": 0 };
+const START_WEIGHTS = { "Bench Press": 50, "Pull-Downs": 42.5, "Leg Press": 60, "Shoulder Press (DB)": 35, "Leg Curl": 22.5, "Low Rows": 35, "DB Bench Press": 40, "RDL": 25, "Lateral Raises": 4.5, "Preacher Curl (machine)": 20, "Incline Press": 20, "Cable Row": 40, "Calf Raises": 45, "Triceps Pushdown": 12.5, "Hammer Curl (machine)": 17, "Dips (assisted)": 29, "Ab Crunch Machine": 15, "Captain's Chair Leg Raise": 0, "Weighted Sit-up": 5, "Twisted Knee Raise": 0, "Pec Deck Fly": 20 };
 
 const PHASE_SESSIONS = [
   { label: "3x/week full body — A / B / C rotation", framing: "Rebuild first: prioritize clean form and consistency as strength returns — weight increases will come as capability rebuilds, not before.", deload: "Deload every 5th week — same exercises, ~50% less volume.",
     sessions: {
-      "Session A": [["Bench Press", "3 x 6-8"], ["Pull-Downs", "3 x 8-10"], ["Leg Press", "3 x 10-12"], ["Shoulder Press", "3 x 8-10"], ["Leg Curl", "3 x 10-12"], ["Overhead Triceps Extension", "2 x 10-12"], ["Ab Crunch Machine", "3 x 12-15"]],
-      "Session B": [["Low Rows", "3 x 6-8"], ["DB Bench Press", "3 x 8-10"], ["RDL", "3 x 10-12"], ["Leg Press", "3 x 10-12"], ["Lateral Raises", "3 x 12-15"], ["Preacher Curl (machine)", "3 x 12-15"], ["Captain's Chair Leg Raise", "3 x 10-12"]],
-      "Session C": [["Incline Press", "3 x 8-10"], ["Cable Row", "3 x 8-10"], ["Leg Press", "3 x 10-12"], ["Calf Raises", "3 x 12-15"], ["Triceps Pushdown", "2 x 10-12"], ["Rear Delt Fly", "2 x 12-15"], ["Weighted Sit-up", "3 x 10-12"], ["Twisted Knee Raise", "3 x 10-12"]],
+      "Session A": [["Bench Press", "3 x 6-8"], ["Pull-Downs", "3 x 8-10"], ["Leg Press", "3 x 10-12"], ["Shoulder Press", "3 x 8-10"], ["Leg Curl", "3 x 10-12"], ["Pec Deck Fly", "3 x 12-15"], ["Ab Crunch Machine", "3 x 12-15"]],
+      "Session B": [["Cable Row", "3 x 6-8"], ["DB Bench Press", "3 x 8-10"], ["RDL", "3 x 10-12"], ["Leg Press", "3 x 10-12"], ["Lateral Raises", "3 x 12-15"], ["Preacher Curl (machine)", "3 x 12-15"], ["Captain's Chair Leg Raise", "3 x 10-12"]],
+      "Session C": [["Incline Press", "3 x 8-10"], ["Low Rows", "3 x 8-10"], ["Leg Press", "3 x 10-12"], ["Calf Raises", "3 x 12-15"], ["Overhead Triceps Extension", "3 x 10-12"], ["Rear Delt Fly", "2 x 12-15"], ["Twisted Knee Raise", "3 x 10-12"]],
     }},
   { label: "4x/week Upper / Lower split", framing: "Chase progress: this is the main muscle-building block — push loads and volume.", deload: "Deload every 5th week — same exercises, ~50% less volume.",
     sessions: {
@@ -88,13 +89,13 @@ const PHASE_SESSIONS = [
     }},
   { label: "3x/week full body — A / B / C (maintenance)", framing: "Hold, don't chase: match or hold Phase 2 end-weights. A flat or slightly-down week is expected, not a failure.", deload: "One deload around week 4 of this phase.",
     sessions: {
-      "Session A": [["Bench Press", "3 x 6-8"], ["Pull-Downs", "3 x 8-10"], ["Leg Press", "3 x 10-12"], ["Shoulder Press", "3 x 8-10"], ["Leg Curl", "3 x 10-12"], ["Overhead Triceps Extension", "2 x 10-12"], ["Ab Crunch Machine", "3 x 12-15"]],
-      "Session B": [["Low Rows", "3 x 6-8"], ["DB Bench Press", "3 x 8-10"], ["RDL", "3 x 10-12"], ["Leg Press", "3 x 10-12"], ["Lateral Raises", "3 x 12-15"], ["Preacher Curl (machine)", "3 x 12-15"], ["Captain's Chair Leg Raise", "3 x 10-12"]],
-      "Session C": [["Incline Press", "3 x 8-10"], ["Cable Row", "3 x 8-10"], ["Leg Press", "3 x 10-12"], ["Calf Raises", "3 x 12-15"], ["Triceps Pushdown", "2 x 10-12"], ["Rear Delt Fly", "2 x 12-15"], ["Weighted Sit-up", "3 x 10-12"], ["Twisted Knee Raise", "3 x 10-12"]],
+      "Session A": [["Bench Press", "3 x 6-8"], ["Pull-Downs", "3 x 8-10"], ["Leg Press", "3 x 10-12"], ["Shoulder Press", "3 x 8-10"], ["Leg Curl", "3 x 10-12"], ["Pec Deck Fly", "3 x 12-15"], ["Ab Crunch Machine", "3 x 12-15"]],
+      "Session B": [["Cable Row", "3 x 6-8"], ["DB Bench Press", "3 x 8-10"], ["RDL", "3 x 10-12"], ["Leg Press", "3 x 10-12"], ["Lateral Raises", "3 x 12-15"], ["Preacher Curl (machine)", "3 x 12-15"], ["Captain's Chair Leg Raise", "3 x 10-12"]],
+      "Session C": [["Incline Press", "3 x 8-10"], ["Low Rows", "3 x 8-10"], ["Leg Press", "3 x 10-12"], ["Calf Raises", "3 x 12-15"], ["Overhead Triceps Extension", "3 x 10-12"], ["Rear Delt Fly", "2 x 12-15"], ["Twisted Knee Raise", "3 x 10-12"]],
     }},
 ];
 const REVERSE_PROGRESS = ["Dips (assisted)"];
-const ISOLATION_EXERCISES = ["Lateral Raises", "Preacher Curl (machine)", "Calf Raises", "Triceps Pushdown", "Hammer Curl (machine)", "Rear Delt Fly", "Overhead Triceps Extension", "Leg Curl", "Ab Crunch Machine", "Captain's Chair Leg Raise", "Weighted Sit-up", "Twisted Knee Raise"];
+const ISOLATION_EXERCISES = ["Lateral Raises", "Preacher Curl (machine)", "Calf Raises", "Triceps Pushdown", "Hammer Curl (machine)", "Rear Delt Fly", "Overhead Triceps Extension", "Leg Curl", "Ab Crunch Machine", "Captain's Chair Leg Raise", "Weighted Sit-up", "Twisted Knee Raise", "Pec Deck Fly"];
 const C25K_SCHEDULE = {
   1: [8, 8, 8], 2: [8.5, 8.5, 8.5], 3: [9, 9, 9], 4: [16, 16, 16],
   5: [15, 16, 20], 6: [18, 20, 25], 7: [25, 25, 25], 8: [28, 28, 28], 9: [30, 30, 30],
@@ -253,7 +254,7 @@ const PROGRESSION_INCREMENT = {
   "Incline Press": 2.5, "Cable Row": 2.5, "Calf Raises": 2.5, "Triceps Pushdown": 1, "Hammer Curl (machine)": 1,
   "Dips (assisted)": 2.5, "Pull-Ups / Pull-Downs": 2.5, "Incline DB Press": 2, "Chest-Supported Row": 2.5,
   "Shoulder Press": 2.5, "Bulgarian Split Squat*": 2.5, "Rear Delt Fly": 1, "Overhead Triceps Extension": 1.5, "Hack Squat": 2.5,
-  "Ab Crunch Machine": 2.5, "Captain's Chair Leg Raise": 1, "Weighted Sit-up": 1, "Twisted Knee Raise": 1,
+  "Ab Crunch Machine": 2.5, "Captain's Chair Leg Raise": 1, "Weighted Sit-up": 1, "Twisted Knee Raise": 1, "Pec Deck Fly": 2.5,
 };
 function parseScheme(scheme) {
   if (!scheme) return null;
@@ -1286,7 +1287,7 @@ function SessionForm({ sessions, phaseIdx, weekInPhase, priorSessions, initial, 
         const displayScheme = isDeload && !returnAdjustment ? deloadScheme(scheme) : scheme;
         const setCount = parseSetCount(displayScheme);
         const repsArr = ((rows[name] && rows[name].reps) || "").split(",");
-        const hasData = rows[name] && rows[name].weight;
+        const hasData = !!(rows[name] && rows[name].weight !== "" && rows[name].weight != null);
         return (
           <div key={name} style={{ ...card, padding: "8px 10px", marginBottom: 8 }}>
             <div style={{ fontSize: 11.5, color: "#4A4D42", marginBottom: 5, display: "flex", alignItems: "center", flexWrap: "wrap", gap: 6 }}>
