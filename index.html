@@ -2235,7 +2235,12 @@ function App() {
             )}
             {data.sessions.length === 0 ? <EmptyState text="No sessions logged yet." /> :
               data.sessions.slice(0, sessionsShown).map((s, i) => (
-                <Entry key={i} onEdit={() => { setEditingSessionIdx(i); setShowForm(null); }} onDelete={() => { if (editingSessionIdx === i) setEditingSessionIdx(null); deleteSession(i); }}>
+                <Entry key={i} onEdit={() => {
+                  if (showForm === "session" && editingSessionIdx === null && data.sessionDraft) {
+                    if (!window.confirm("You have an unsaved session in progress. Editing this entry will switch away from it — your in-progress session is saved and will be there when you come back to logging a new session. Continue?")) return;
+                  }
+                  setEditingSessionIdx(i); setShowForm(null);
+                }} onDelete={() => { if (editingSessionIdx === i) setEditingSessionIdx(null); deleteSession(i); }}>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, paddingRight: 48 }}>
                     <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 13, fontWeight: 600 }}>{s.sessionName}</span>
                     <span style={{ fontSize: 11, color: "#6B6F63" }}>{formatShortDate(s.date)}</span>
