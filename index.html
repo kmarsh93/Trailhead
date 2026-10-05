@@ -26,9 +26,9 @@
 const { useState, useEffect, useCallback, useMemo, useRef } = React;
 
 const START_DATE = new Date("2026-07-27");
-const END_DATE = new Date("2027-05-08");
+const END_DATE = new Date("2027-04-23");
 const PHASES = [
-  { name: "Phase 1", weeks: 17, color: "#C1622B" },
+  { name: "Phase 1", weeks: 15, color: "#C1622B" },
   { name: "Phase 2", weeks: 16, color: "#7A8F5C" },
   { name: "Phase 3", weeks: 7, color: "#8C4A2A" },
 ];
@@ -236,6 +236,22 @@ function adjustWeight(w, factor) {
   return roundHalf(n * factor);
 }
 function deloadWeight(w) { return adjustWeight(w, 0.9); }
+// Return-from-break adjustment. New-style adjustments carry a `since` date and apply per exercise until that exercise has been
+// logged once on/after `since`; they stay active until every session in the current phase has been logged since (or 42 days pass).
+// Legacy adjustments (no `since`) keep the old one-shot behaviour and are cleared when the next session is saved.
+function returnAdjustmentActive(adj, sessionLogs, sessionNames, todayStr) {
+  if (!adj) return false;
+  if (!adj.since) return true;
+  const cap = new Date(adj.since + "T12:00:00");
+  cap.setDate(cap.getDate() + 42);
+  if (todayStr > localDateStr(cap)) return false;
+  return sessionNames.some((n) => !sessionLogs.some((s) => s.date >= adj.since && s.sessionName === n));
+}
+function exerciseNeedsReturnAdjust(adj, sessionLogs, exerciseName) {
+  if (!adj) return false;
+  if (!adj.since) return true;
+  return !sessionLogs.some((s) => s.date >= adj.since && s.exercises.some((e) => e.name === exerciseName && e.weight !== ""));
+}
 function deloadScheme(scheme) {
   const m = scheme.match(/^(\d+)\s*x\s*(.+)$/);
   if (!m) return scheme;
@@ -923,7 +939,7 @@ function PhotoJourney({ stats }) {
   return (
     <div>
       <div style={{ fontSize: 11, color: "#6B6F63", marginBottom: 8 }}>{entries.length} {entries.length === 1 ? "checkpoint" : "checkpoints"} — scroll to see your journey, tap to expand</div>
-      <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 8, WebkitOverflowScrolling: "touch" }}>
+      <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 8, WebkitOverflowScrolling: "touch", touchAction: "pan-x", overscrollBehaviorX: "contain" }}>
         {entries.map((e, i) => (
           <button key={i} onClick={() => setExpandedIdx(i)} style={{ flex: "0 0 auto", width: 160, background: "none", border: "none", padding: 0, cursor: "pointer", textAlign: "left" }}>
             <div style={{ ...card, padding: 7 }}>
@@ -1232,6 +1248,7 @@ function SessionForm({ sessions, phaseIdx, weekInPhase, priorSessions, initial, 
   useEffect(() => {
     if (restoredFromDraft && draft.sessionName === sessionName) return;
     const exercises = sessions[sessionName] || sessions[names[0]];
+    const adjOn = returnAdjustmentActive(returnAdjustment, priorSessions, names, localDateStr());
     const init = {};
     exercises.forEach(([name]) => {
       if (name === "Plank" || name === "Bicycle Crunch") return;
@@ -1239,7 +1256,7 @@ function SessionForm({ sessions, phaseIdx, weekInPhase, priorSessions, initial, 
       if (existing) { init[name] = { weight: existing.weight, reps: existing.reps, bumped: false }; }
       else {
         const { weight: prior, level } = bestPriorEntry(priorSessions, name);
-        if (returnAdjustment && prior !== "") {
+        if (adjOn && exerciseNeedsReturnAdjust(returnAdjustment, priorSessions, name) && prior !== "") {
           init[name] = { weight: adjustWeight(prior, returnAdjustment.factor), reps: "", bumped: false, returning: true };
         } else if (isDeload && prior !== "") {
           init[name] = { weight: deloadWeight(prior), reps: "", bumped: false };
@@ -1271,20 +1288,23 @@ function SessionForm({ sessions, phaseIdx, weekInPhase, priorSessions, initial, 
     const exercises = Object.entries(rows).filter(([, v]) => v.weight !== "" || v.reps !== "").map(([name, v]) => ({ name, weight: v.weight, reps: v.reps }));
     if (exercises.length) onSubmit(sessionName, exercises, date);
   };
+  const adjOn = returnAdjustmentActive(returnAdjustment, priorSessions, names, localDateStr());
+  const adjNeeded = adjOn && (sessions[sessionName] || []).some(([n]) => exerciseNeedsReturnAdjust(returnAdjustment, priorSessions, n));
+  const adjPartial = adjNeeded && (sessions[sessionName] || []).some(([n]) => !exerciseNeedsReturnAdjust(returnAdjustment, priorSessions, n));
   return (
     <FormShell>
       <DateField date={date} setDate={changeDate} />
-      {returnAdjustment && (
+      {adjNeeded && (
         <div style={{ fontSize: 11.5, color: "#8C4A2A", fontStyle: "italic", marginBottom: 10 }}>
-          Welcome back — {returnAdjustment.daysPaused} days off. Weights pre-filled at {Math.round(returnAdjustment.factor * 100)}% of last logged to ease back in.
+          Welcome back — {returnAdjustment.daysPaused} days off. Weights pre-filled at {Math.round(returnAdjustment.factor * 100)}% of last logged to ease back in.{adjPartial ? " Exercises you've already logged since returning continue from your latest weight." : ""}
         </div>
       )}
-      {!returnAdjustment && isDeload && <div style={{ fontSize: 11.5, color: "#8C4A2A", fontStyle: "italic", marginBottom: 10 }}>Deload week — weights pre-filled at ~90% of last logged, sets roughly halved.</div>}
+      {!adjNeeded && isDeload && <div style={{ fontSize: 11.5, color: "#8C4A2A", fontStyle: "italic", marginBottom: 10 }}>Deload week — weights pre-filled at ~90% of last logged, sets roughly halved.</div>}
       <select style={{ ...inputStyle, marginBottom: 10, width: "100%" }} value={sessionName} onChange={e => setSessionName(e.target.value)}>
         {names.map(n => <option key={n} value={n}>{n}</option>)}
       </select>
       {sessions[sessionName].filter(([n]) => n !== "Plank" && n !== "Bicycle Crunch").map(([name, scheme]) => {
-        const displayScheme = isDeload && !returnAdjustment ? deloadScheme(scheme) : scheme;
+        const displayScheme = isDeload && !(adjOn && exerciseNeedsReturnAdjust(returnAdjustment, priorSessions, name)) ? deloadScheme(scheme) : scheme;
         const setCount = parseSetCount(displayScheme);
         const repsArr = ((rows[name] && rows[name].reps) || "").split(",");
         const hasData = !!(rows[name] && rows[name].weight !== "" && rows[name].weight != null);
@@ -1704,7 +1724,7 @@ function App() {
     let factor = null;
     if (daysPaused >= 4 && daysPaused <= 10) factor = 0.9;
     else if (daysPaused > 10) factor = 0.8;
-    persist({ ...data, dateShiftDays: (data.dateShiftDays || 0) + daysPaused, pause: { active: false, startDate: null }, returnAdjustment: factor ? { factor, daysPaused } : null });
+    persist({ ...data, dateShiftDays: (data.dateShiftDays || 0) + daysPaused, pause: { active: false, startDate: null }, returnAdjustment: factor ? { factor, daysPaused, since: todayStr } : null });
   };
   const addStat = entry => persist({ ...data, stats: sortByDateDesc([{ ...entry, date: entry.date || localDateStr() }, ...data.stats]) });
   const deleteStat = idx => {
@@ -1856,7 +1876,7 @@ function App() {
       <div style={{ padding: "18px 18px 0", display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
         <div>
           <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 24, color: ink, fontWeight: 700 }}>{formatHeaderDate()}</div>
-          <div style={{ fontSize: 12, color: muted }}>Jul 27, 2026 → May 8, 2027 · 40 weeks on trail</div>
+          <div style={{ fontSize: 12, color: muted }}>{`${START_DATE.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" })} → ${shiftedDate(END_DATE).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" })} · ${PHASES.reduce((a, p) => a + p.weeks, 0)} weeks on trail`}</div>
         </div>
         <button onClick={() => setTab("data")} aria-label="Data settings" style={{ background: "none", border: "none", cursor: "pointer", padding: 4, marginTop: 2, display: "flex" }}><Icon name="Database" size={19} color={muted} /></button>
       </div>
@@ -2174,7 +2194,10 @@ function App() {
                   if (editingSessionIdx !== null) { updateSession(editingSessionIdx, n, ex, date); setEditingSessionIdx(null); }
                   else {
                     const newSession = { date: date || localDateStr(), sessionName: n, phaseIdx, exercises: ex };
-                    persist({ ...data, sessions: sortByDateDesc([newSession, ...data.sessions]), returnAdjustment: data.returnAdjustment ? null : data.returnAdjustment, sessionDraft: null });
+                    const newSessions = sortByDateDesc([newSession, ...data.sessions]);
+                    const adj = data.returnAdjustment;
+                    const keepAdj = adj && adj.since && returnAdjustmentActive(adj, newSessions, Object.keys(currentSessions), localDateStr()) ? adj : null;
+                    persist({ ...data, sessions: newSessions, returnAdjustment: keepAdj, sessionDraft: null });
                   }
                   setShowForm(null);
                 }}
