@@ -28,9 +28,9 @@ const { useState, useEffect, useCallback, useMemo, useRef } = React;
 const START_DATE = new Date("2026-07-27");
 const END_DATE = new Date("2027-04-23");
 const PHASES = [
-  { name: "Phase 1", weeks: 15, color: "#C1622B" },
-  { name: "Phase 2", weeks: 16, color: "#7A8F5C" },
-  { name: "Phase 3", weeks: 7, color: "#8C4A2A" },
+  { name: "Phase 1", sub: "Fat loss + regain", weeks: 19, color: "#C1622B" },
+  { name: "Phase 2", sub: "Lean gain", weeks: 12, color: "#7A8F5C" },
+  { name: "Phase 3", sub: "Tightening", weeks: 7, color: "#8C4A2A" },
 ];
 const EXERCISE_SUBSTITUTES = {
   "Bench Press": "No barbell? DB Bench Press or a chest press machine at a similar weight-per-side.",
@@ -48,6 +48,7 @@ const EXERCISE_SUBSTITUTES = {
   "Calf Raises": "No calf machine? Standing DB calf raises on a step.",
   "Triceps Pushdown": "No cable station? DB overhead triceps extension.",
   "Hammer Curl (machine)": "No machine? DB hammer curls.",
+  "Incline DB Curl": "No incline bench? Seated DB curls with the back pad upright, or cable curls.",
   "Dips (assisted)": "No assisted dip machine? Loop a resistance band over the bar for assistance.",
   "Pull-Ups (assisted)": "No assisted pull-up machine? Loop a resistance band over the bar for assistance.",
   "Incline DB Press": "No incline bench free? Flat DB bench press.",
@@ -69,22 +70,23 @@ const EXERCISE_ESTIMATE_FROM = {
   "Hack Squat": { from: "Leg Press", ratio: 0.45 },
   "Chest-Supported Row": { from: "Low Rows", ratio: 0.9 },
   "Incline DB Press": { from: "DB Bench Press", ratio: 0.85 },
+  "Incline DB Curl": { from: "Preacher Curl (machine)", ratio: 0.4 },
   "Shoulder Press": { from: "Shoulder Press (DB)", ratio: 1 },
 };
-const START_WEIGHTS = { "Bench Press": 50, "Pull-Downs": 42.5, "Leg Press": 60, "Shoulder Press (DB)": 35, "Leg Curl": 22.5, "Low Rows": 35, "DB Bench Press": 40, "RDL": 25, "Lateral Raises": 4.5, "Preacher Curl (machine)": 20, "Incline Press": 20, "Cable Row": 40, "Calf Raises": 45, "Triceps Pushdown": 12.5, "Hammer Curl (machine)": 17, "Dips (assisted)": 29, "Ab Crunch Machine": 15, "Captain's Chair Leg Raise": 0, "Weighted Sit-up": 5, "Twisted Knee Raise": 0, "Pec Deck Fly": 20, "Leg Extension": 25, "Pull-Ups (assisted)": 29 };
+const START_WEIGHTS = { "Bench Press": 50, "Pull-Downs": 42.5, "Leg Press": 60, "Shoulder Press (DB)": 35, "Leg Curl": 22.5, "Low Rows": 35, "DB Bench Press": 40, "RDL": 25, "Lateral Raises": 4.5, "Preacher Curl (machine)": 20, "Incline Press": 20, "Cable Row": 40, "Calf Raises": 45, "Triceps Pushdown": 12.5, "Hammer Curl (machine)": 17, "Dips (assisted)": 29, "Ab Crunch Machine": 15, "Captain's Chair Leg Raise": 0, "Weighted Sit-up": 5, "Twisted Knee Raise": 0, "Pec Deck Fly": 20, "Leg Extension": 25, "Pull-Ups (assisted)": 29, "Incline DB Curl": 6 };
 
 const PHASE_SESSIONS = [
   { label: "3x/week full body — A / B / C rotation", framing: "Rebuild first: prioritize clean form and consistency as strength returns — weight increases will come as capability rebuilds, not before.", deload: "Deload every 5th week — same exercises, ~50% less volume.",
     sessions: {
-      "Session A": [["Bench Press", "3 x 6-8"], ["Pull-Downs", "3 x 8-10"], ["Leg Press", "3 x 10-12"], ["Shoulder Press", "3 x 8-10"], ["Leg Curl", "3 x 10-12"], ["Pec Deck Fly", "3 x 12-15"], ["Ab Crunch Machine", "3 x 12-15"]],
+      "Session A": [["Bench Press", "3 x 6-8"], ["Pull-Downs", "3 x 8-10"], ["Leg Press", "3 x 10-12"], ["Shoulder Press", "3 x 8-10"], ["Leg Curl", "3 x 10-12"], ["Pec Deck Fly", "3 x 12-15"], ["Lateral Raises", "3 x 12-15"], ["Ab Crunch Machine", "3 x 12-15"]],
       "Session B": [["Cable Row", "3 x 6-8"], ["DB Bench Press", "3 x 8-10"], ["RDL", "3 x 10-12"], ["Leg Extension", "3 x 10-12"], ["Lateral Raises", "3 x 12-15"], ["Preacher Curl (machine)", "3 x 12-15"], ["Captain's Chair Leg Raise", "3 x 10-12"]],
       "Session C": [["Incline Press", "3 x 8-10"], ["Low Rows", "3 x 8-10"], ["Leg Press", "3 x 10-12"], ["Calf Raises", "3 x 12-15"], ["Overhead Triceps Extension", "3 x 10-12"], ["Rear Delt Fly", "2 x 12-15"], ["Twisted Knee Raise", "3 x 10-12"]],
     }},
   { label: "4x/week Upper / Lower split", framing: "Chase progress: this is the main muscle-building block — push loads and volume.", deload: "Deload every 5th week — same exercises, ~50% less volume.",
     sessions: {
-      "Upper A": [["Bench Press", "3 x 6-8"], ["Pull-Ups (assisted)", "3 x 6-8"], ["Incline DB Press", "3 x 8-10"], ["Cable Row", "3 x 8-10"], ["Lateral Raises", "3 x 12-15"], ["Preacher Curl (machine)", "3 x 12-15"], ["Pec Deck Fly", "3 x 12-15"], ["Overhead Triceps Extension", "3 x 10-12"]],
+      "Upper A": [["Bench Press", "3 x 6-8"], ["Pull-Ups (assisted)", "3 x 6-8"], ["Incline DB Press", "3 x 8-10"], ["Cable Row", "3 x 8-10"], ["Lateral Raises", "3 x 12-15"], ["Preacher Curl (machine)", "3 x 12-15"], ["Pec Deck Fly", "3 x 12-15"], ["Overhead Triceps Extension", "3 x 10-12"], ["Incline DB Curl", "3 x 12-15"]],
       "Lower A": [["Hack Squat", "4 x 8-10"], ["RDL", "3 x 8-10"], ["Leg Curl", "3 x 10-12"], ["Leg Extension", "3 x 10-12"], ["Calf Raises", "3 x 10-15"], ["Ab Crunch Machine", "3 x 12-15"]],
-      "Upper B": [["Shoulder Press", "3 x 6-8"], ["Pull-Downs", "3 x 6-8"], ["DB Bench Press", "3 x 8-10"], ["Chest-Supported Row", "3 x 8-10"], ["Dips (assisted)", "3 x 8-10"], ["Pec Deck Fly", "3 x 12-15"], ["Hammer Curl (machine)", "3 x 12-15"], ["Rear Delt Fly", "2 x 12-15"], ["Captain's Chair Leg Raise", "3 x 10-12"]],
+      "Upper B": [["Shoulder Press", "3 x 6-8"], ["Pull-Downs", "3 x 6-8"], ["DB Bench Press", "3 x 8-10"], ["Chest-Supported Row", "3 x 8-10"], ["Dips (assisted)", "3 x 8-10"], ["Pec Deck Fly", "3 x 12-15"], ["Lateral Raises", "3 x 12-15"], ["Hammer Curl (machine)", "3 x 12-15"], ["Rear Delt Fly", "2 x 12-15"], ["Captain's Chair Leg Raise", "3 x 10-12"]],
       "Lower B": [["RDL", "3 x 8-10"], ["Bulgarian Split Squat*", "3 x 10-12"], ["Leg Curl", "3 x 10-12"], ["Leg Extension", "3 x 10-12"], ["Calf Raises", "3 x 10-15"], ["Twisted Knee Raise", "3 x 10-12"]],
     }},
   { label: "3x/week full body — A / B / C (maintenance)", framing: "Hold, don't chase: match or hold Phase 2 end-weights. A flat or slightly-down week is expected, not a failure.", deload: "One deload around week 4 of this phase.",
@@ -95,7 +97,7 @@ const PHASE_SESSIONS = [
     }},
 ];
 const REVERSE_PROGRESS = ["Dips (assisted)", "Pull-Ups (assisted)"];
-const ISOLATION_EXERCISES = ["Lateral Raises", "Preacher Curl (machine)", "Calf Raises", "Triceps Pushdown", "Hammer Curl (machine)", "Rear Delt Fly", "Overhead Triceps Extension", "Leg Curl", "Ab Crunch Machine", "Captain's Chair Leg Raise", "Weighted Sit-up", "Twisted Knee Raise", "Pec Deck Fly", "Leg Extension"];
+const ISOLATION_EXERCISES = ["Lateral Raises", "Preacher Curl (machine)", "Calf Raises", "Triceps Pushdown", "Hammer Curl (machine)", "Incline DB Curl", "Rear Delt Fly", "Overhead Triceps Extension", "Leg Curl", "Ab Crunch Machine", "Captain's Chair Leg Raise", "Weighted Sit-up", "Twisted Knee Raise", "Pec Deck Fly", "Leg Extension"];
 const C25K_SCHEDULE = {
   1: [8, 8, 8], 2: [8.5, 8.5, 8.5], 3: [9, 9, 9], 4: [16, 16, 16],
   5: [15, 16, 20], 6: [18, 20, 25], 7: [25, 25, 25], 8: [28, 28, 28], 9: [30, 30, 30],
@@ -166,15 +168,18 @@ const FLEXIBILITY_ROUTINE = [
 ];
 const PHASE_NUTRITION = [
   { kcal: 2450, protein: 170, fat: 73, carbs: 280 },
-  { kcal: 3050, protein: 170, fat: 85, carbs: 400 },
+  { kcal: 2800, protein: 170, fat: 80, carbs: 350 },
   { kcal: 2450, protein: 170, fat: 73, carbs: 280 },
 ];
+// Waist-led targets (weight is a 2-week-average trend only). Phase 2 is a hold-the-waist build phase.
 const PHASE_TARGET = [
-  { weight: 74.75, bf: 13.5, label: "End of Phase 1 target" },
-  { weight: 79.4, bf: 16.5, label: "End of Phase 2 target" },
-  { weight: 77.5, bf: 15, label: "End of Phase 3 — final goal" },
+  { waist: 91, weight: 81.5, bf: 19, label: "End of Phase 1 target" },
+  { waist: 91, weight: 82.5, bf: 18.5, label: "End of Phase 2 target (hold waist)" },
+  { waist: 88, weight: 79.5, bf: 17, label: "End of Phase 3 — final goal" },
 ];
-const PHASE_START_WEIGHT = [81, 74.75, 79.4];
+const PHASE_START_WEIGHT = [84.9, 81.5, 82.5];
+const PHASE_START_WAIST = [96, 91, 91];
+const PHASE1_CHECKPOINT_WEEK = 15; // if waist <= 92cm and still falling here, move into Phase 2 early
 const USER_HEIGHT_CM = 183;
 
 const GOLD_STATUS = "#D4AF37";
@@ -185,7 +190,7 @@ const GREY_STATUS = "#D8D2C2";
 
 const KCAL_RANGES = [
   { floor: 2200, optimalMin: 2400, optimalMax: 2500, softOverMax: 2700, mode: "deficit" },
-  { floor: 2800, optimalMin: 3000, optimalMax: 3100, softOverMax: 3400, mode: "surplus" },
+  { floor: 2600, optimalMin: 2700, optimalMax: 2850, softOverMax: 3000, mode: "surplus" },
   { floor: 2200, optimalMin: 2400, optimalMax: 2500, softOverMax: 2700, mode: "deficit" },
 ];
 const KCAL_TOLERANCE = 125;
@@ -267,7 +272,7 @@ function parseSetCount(scheme) {
 const PROGRESSION_INCREMENT = {
   "Bench Press": 2.5, "Pull-Downs": 2.5, "Leg Press": 5, "Shoulder Press (DB)": 2, "Leg Curl": 2, "Leg Extension": 2.5,
   "Low Rows": 2.5, "DB Bench Press": 2, "RDL": 2.5, "Lateral Raises": 1, "Preacher Curl (machine)": 2,
-  "Incline Press": 2.5, "Cable Row": 2.5, "Calf Raises": 2.5, "Triceps Pushdown": 1, "Hammer Curl (machine)": 1,
+  "Incline Press": 2.5, "Cable Row": 2.5, "Calf Raises": 2.5, "Triceps Pushdown": 1, "Hammer Curl (machine)": 1, "Incline DB Curl": 1,
   "Dips (assisted)": 2.5, "Pull-Ups (assisted)": 2.5, "Incline DB Press": 2, "Chest-Supported Row": 2.5,
   "Shoulder Press": 2.5, "Bulgarian Split Squat*": 2.5, "Rear Delt Fly": 1, "Overhead Triceps Extension": 1.5, "Hack Squat": 2.5,
   "Ab Crunch Machine": 2.5, "Captain's Chair Leg Raise": 1, "Weighted Sit-up": 1, "Twisted Knee Raise": 1, "Pec Deck Fly": 2.5,
@@ -728,11 +733,17 @@ function Timeline({ data, onPhaseClick, onPause, onResume }) {
   const pct = Math.min(100, (elapsed / totalWeeks) * 100);
   const target = PHASE_TARGET[phaseIdx];
   const startWeight = PHASE_START_WEIGHT[phaseIdx];
+  const startWaist = PHASE_START_WAIST[phaseIdx];
   const latest = data.stats[0] ? parseFloat(data.stats[0].weight) : null;
+  const latestWaist = data.stats[0] && data.stats[0].waist !== "" && data.stats[0].waist != null ? parseFloat(data.stats[0].waist) : null;
+  const waistLed = phaseIdx !== 1 && latestWaist != null && !isNaN(latestWaist);
   const paused = data.pause && data.pause.active;
   let goalPct = null, remaining = null;
   if (latest != null) {
-    if (phaseIdx === 1) {
+    if (waistLed) {
+      goalPct = ((startWaist - latestWaist) / (startWaist - target.waist)) * 100;
+      remaining = latestWaist - target.waist;
+    } else if (phaseIdx === 1) {
       goalPct = ((latest - startWeight) / (target.weight - startWeight)) * 100;
       remaining = target.weight - latest;
     } else {
@@ -760,7 +771,7 @@ function Timeline({ data, onPhaseClick, onPause, onResume }) {
       </div>
       <div style={{ position: "relative", height: 6, background: "#1E4433", borderRadius: 10, marginBottom: 8 }}>
         <div style={{ position: "absolute", left: 0, top: 0, height: "100%", width: pct + "%", background: gold, borderRadius: 10 }} />
-        {[17, 33].map((w, i) => <div key={i} style={{ position: "absolute", left: (w/totalWeeks*100) + "%", top: -3, width: 2, height: 12, background: bg }} />)}
+        {[PHASES[0].weeks, PHASES[0].weeks + PHASES[1].weeks].map((w, i) => <div key={i} style={{ position: "absolute", left: (w/totalWeeks*100) + "%", top: -3, width: 2, height: 12, background: bg }} />)}
       </div>
       <div style={{ display: "flex", justifyContent: "space-between", fontFamily: "'Nunito Sans', sans-serif", fontSize: 11, color: muted, marginBottom: 3 }}>
         {PHASES.map((p, i) => (
@@ -777,8 +788,8 @@ function Timeline({ data, onPhaseClick, onPause, onResume }) {
       {latest != null && (
         <div>
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10.5, color: muted, marginBottom: 3 }}>
-            <span>{latest}kg → {target.weight}kg</span>
-            <span>{remaining > 0.05 ? remaining.toFixed(1) + "kg to go" : "Target reached"}</span>
+            <span>{waistLed ? latestWaist + "cm → " + target.waist + "cm" : latest + "kg → " + target.weight + "kg"}</span>
+            <span>{remaining > 0.05 ? remaining.toFixed(1) + (waistLed ? "cm" : "kg") + " to go" : "Target reached"}</span>
           </div>
           <div style={{ position: "relative", height: 5, background: "#1E4433", borderRadius: 8 }}>
             <div style={{ position: "absolute", left: 0, top: 0, height: "100%", width: goalPct + "%", background: "#7A8F5C", borderRadius: 8 }} />
@@ -1842,7 +1853,7 @@ function App() {
     return ankleCount + flexCount;
   }, [data.ankle.sessions, data.flexibility, elapsed]);
   const mobilityTarget = mobilityTargetForWeek(phaseIdx, weekInPhase);
-  const scorecardBodyweight = data.stats[0] ? parseFloat(data.stats[0].weight) : 81;
+  const scorecardBodyweight = data.stats[0] ? parseFloat(data.stats[0].weight) : 84.9;
   const scorecardProteinFloor = proteinBands(scorecardBodyweight).floor;
   const foodWeekStats = useMemo(() => {
     let logged = 0, floorMet = 0;
@@ -2031,7 +2042,7 @@ function App() {
           const showingDeload = pIdx === phaseIdx && deloadActive;
           const nutritionTarget = PHASE_NUTRITION[pIdx];
           const kcalRange = KCAL_RANGES[pIdx];
-          const macroBodyweight = data.stats[0] ? parseFloat(data.stats[0].weight) : 81;
+          const macroBodyweight = data.stats[0] ? parseFloat(data.stats[0].weight) : 84.9;
           const macroProtein = proteinBands(macroBodyweight);
           return (
             <div>
@@ -2042,10 +2053,16 @@ function App() {
               <div style={{ ...card, padding: "12px 14px", marginBottom: 16 }}>
                 <div style={{ fontSize: 11, textTransform: "uppercase", color: "#6B6F63", marginBottom: 4 }}>{target.label}</div>
                 <div style={{ display: "flex", gap: 18 }}>
-                  <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 17, fontWeight: 700 }}>{target.weight}kg</span>
-                  <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 17, fontWeight: 700 }}>{target.bf}% BF</span>
+                  <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 17, fontWeight: 700 }}>{pIdx === 1 ? "≤" + target.waist + "cm waist" : target.waist + "cm waist"}</span>
+                  <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 17, fontWeight: 700 }}>~{target.bf}% BF</span>
+                  <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: 17, fontWeight: 700 }}>~{target.weight}kg</span>
                 </div>
-                <div style={{ fontSize: 10.5, color: "#8A7B5C", marginTop: 4 }}>Recalibration checkpoint: compare actual numbers to this at the phase boundary.</div>
+                <div style={{ fontSize: 10.5, color: "#8A7B5C", marginTop: 4 }}>Waist leads; weight is a rough 2-week-average trend only (water and muscle blur the scale). Off by more than ~2cm at a phase boundary? Flag it in chat to adjust the remaining phases.</div>
+                {pIdx === 0 && (() => {
+                  const cp = shiftedDate(START_DATE); cp.setDate(cp.getDate() + PHASE1_CHECKPOINT_WEEK * 7 - 1);
+                  return <div style={{ fontSize: 10.5, color: "#8C4A2A", marginTop: 6, fontWeight: 700 }}>Checkpoint {cp.toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" })}: waist 92cm or lower and still falling → move into Phase 2 early. Otherwise run the full {PHASES[0].weeks} weeks. Log food accurately — it decides whether the 2,450 kcal target is really a deficit.</div>;
+                })()}
+                {pIdx === 1 && <div style={{ fontSize: 10.5, color: "#8C4A2A", marginTop: 6, fontWeight: 700 }}>Calories are provisional (maintenance to a small surplus). Re-set from your measured weight and waist trend before this phase starts.</div>}
               </div>
               {Object.entries(p.sessions).map(([name, exercises]) => (
                 <div key={name} style={{ marginBottom: 12 }}>
@@ -2416,7 +2433,7 @@ function App() {
 
         {tab === "food" && (() => {
           const target = PHASE_NUTRITION[phaseIdx];
-          const bodyweight = data.stats[0] ? parseFloat(data.stats[0].weight) : 81;
+          const bodyweight = data.stats[0] ? parseFloat(data.stats[0].weight) : 84.9;
           const { floor: proteinFloor, optimal: proteinOptimal } = proteinBands(bodyweight);
           const kcalColor = kcalStatusColor(todayTotals.kcal, phaseIdx);
           const proteinColor = proteinStatusColor(todayTotals.protein, proteinFloor, proteinOptimal);
