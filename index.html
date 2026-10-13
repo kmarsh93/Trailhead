@@ -554,6 +554,12 @@ function twoWeekCutoffStr() {
   d.setDate(d.getDate() - 14);
   return localDateStr(d);
 }
+function recentAverage(entries, field, todayStr, days = 7) {
+  const cutoff = new Date(todayStr + "T12:00:00"); cutoff.setDate(cutoff.getDate() - (days - 1));
+  const from = localDateStr(cutoff);
+  const vals = (entries || []).filter((e) => e.date >= from && e.date <= todayStr).map((e) => parseFloat(String(e[field]).replace(/,/g, ""))).filter((v) => !isNaN(v));
+  return { avg: vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null, n: vals.length };
+}
 function sortByDateDesc(arr) {
   return [...arr].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
 }
@@ -719,10 +725,10 @@ function loadData() {
       const migratedSleep = parsed.sleep || (parsed.stats || [])
         .filter(s => s.sleepHours || s.sleepQuality)
         .map(s => ({ date: s.date, hours: s.sleepHours || "", quality: s.sleepQuality || "" }));
-      return { stats: [], sessions: [], runs: [], ankle: { stage: 1, sessions: [] }, flexibility: [], nutrition: [], nutritionComplete: [], sleep: [], dateShiftDays: 0, pause: { active: false, startDate: null }, returnAdjustment: null, savedMeals: [], lockedTargets: {}, sessionDraft: null, ...parsed, sleep: migratedSleep };
+      return { stats: [], sessions: [], runs: [], ankle: { stage: 1, sessions: [] }, flexibility: [], nutrition: [], nutritionComplete: [], sleep: [], steps: [], dateShiftDays: 0, pause: { active: false, startDate: null }, returnAdjustment: null, savedMeals: [], lockedTargets: {}, sessionDraft: null, ...parsed, sleep: migratedSleep };
     }
   } catch (e) {}
-  return { stats: [], sessions: [], runs: [], ankle: { stage: 1, sessions: [] }, flexibility: [], nutrition: [], nutritionComplete: [], sleep: [], dateShiftDays: 0, pause: { active: false, startDate: null }, returnAdjustment: null, savedMeals: [], lockedTargets: {}, sessionDraft: null };
+  return { stats: [], sessions: [], runs: [], ankle: { stage: 1, sessions: [] }, flexibility: [], nutrition: [], nutritionComplete: [], sleep: [], steps: [], dateShiftDays: 0, pause: { active: false, startDate: null }, returnAdjustment: null, savedMeals: [], lockedTargets: {}, sessionDraft: null };
 }
 function saveData(data) {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch (e) { console.error("Save failed", e); }
@@ -1213,6 +1219,21 @@ function BodyForm({ onSubmit, initial, lastNeck }) {
   );
 }
 
+function StepsForm({ onSubmit, initial }) {
+  const [steps, setSteps] = useState(initial ? initial.steps : "");
+  const [date, setDate] = useState(initial ? initial.date : localDateStr());
+  const n = parseInt(String(steps).replace(/[^0-9]/g, ""), 10);
+  return (
+    <FormShell>
+      <DateField date={date} setDate={setDate} />
+      <FieldRow>
+        <input style={inputStyle} inputMode="numeric" placeholder="Steps (from your phone's health app)" value={steps} onChange={(e) => setSteps(e.target.value)} />
+      </FieldRow>
+      <button style={submitStyle} onClick={() => n > 0 && onSubmit({ steps: String(n), date })}>{initial ? "Save changes" : "Save entry"}</button>
+    </FormShell>
+  );
+}
+
 function SleepForm({ onSubmit, initial }) {
   const [hours, setHours] = useState(initial ? initial.hours : ""), [quality, setQuality] = useState(initial ? initial.quality : "");
   const [date, setDate] = useState(initial ? initial.date : localDateStr());
@@ -1672,6 +1693,7 @@ function App() {
   const [sessionsExtra, setSessionsExtra] = useState(0);
   const [statsExtra, setStatsExtra] = useState(0);
   const [sleepExtra, setSleepExtra] = useState(0);
+  const [stepsExtra, setStepsExtra] = useState(0);
   const [runsExtra, setRunsExtra] = useState(0);
   const [editingSessionIdx, setEditingSessionIdx] = useState(null);
   const [editingRunIdx, setEditingRunIdx] = useState(null);
@@ -1680,6 +1702,7 @@ function App() {
   const [editingMealIdx, setEditingMealIdx] = useState(null);
   const [editingStatIdx, setEditingStatIdx] = useState(null);
   const [editingSleepIdx, setEditingSleepIdx] = useState(null);
+  const [editingStepsIdx, setEditingStepsIdx] = useState(null);
   const [expandedDays, setExpandedDays] = useState({});
   const [expandedMonths, setExpandedMonths] = useState({});
   const [expandedSubs, setExpandedSubs] = useState({});
@@ -1698,6 +1721,7 @@ function App() {
     setEditingMealIdx(null);
     setEditingStatIdx(null);
     setEditingSleepIdx(null);
+    setEditingStepsIdx(null);
     setViewingMeal(null);
     setAddingToLibrary(false);
   }, [tab]);
@@ -1750,6 +1774,9 @@ function App() {
   const addSleep = entry => persist({ ...data, sleep: sortByDateDesc([{ ...entry, date: entry.date || localDateStr() }, ...data.sleep]) });
   const deleteSleep = idx => persist({ ...data, sleep: data.sleep.filter((_, i) => i !== idx) });
   const updateSleep = (idx, entry) => persist({ ...data, sleep: sortByDateDesc(data.sleep.map((s, i) => i === idx ? { ...entry } : s)) });
+  const addSteps = (entry) => { const d = entry.date || localDateStr(); persist({ ...data, steps: sortByDateDesc([{ ...entry, date: d }, ...data.steps.filter((s) => s.date !== d)]) }); };
+  const deleteSteps = (idx) => persist({ ...data, steps: data.steps.filter((_, i) => i !== idx) });
+  const updateSteps = (idx, entry) => persist({ ...data, steps: sortByDateDesc([{ ...entry }, ...data.steps.filter((s, i) => i !== idx && s.date !== entry.date)]) });
   const deleteSession = idx => persist({ ...data, sessions: data.sessions.filter((_, i) => i !== idx) });
   const updateSession = (idx, name, exercises, date) => persist({ ...data, sessions: sortByDateDesc(data.sessions.map((s, i) => i === idx ? { ...s, sessionName: name, exercises, date: date || s.date } : s)) });
   const addRun = entry => persist({ ...data, runs: sortByDateDesc([{ ...entry, date: entry.date || localDateStr() }, ...data.runs]) });
@@ -1786,7 +1813,7 @@ function App() {
         const parsed = JSON.parse(reader.result);
         if (window.confirm("Import will replace all current data on this device. Continue?")) {
           const { photos, ...rest } = parsed;
-          persist({ stats: [], sessions: [], runs: [], ankle: { stage: 1, sessions: [] }, flexibility: [], nutrition: [], nutritionComplete: [], sleep: [], dateShiftDays: 0, pause: { active: false, startDate: null }, returnAdjustment: null, savedMeals: [], lockedTargets: {}, sessionDraft: null, ...rest });
+          persist({ stats: [], sessions: [], runs: [], ankle: { stage: 1, sessions: [] }, flexibility: [], nutrition: [], nutritionComplete: [], sleep: [], steps: [], dateShiftDays: 0, pause: { active: false, startDate: null }, returnAdjustment: null, savedMeals: [], lockedTargets: {}, sessionDraft: null, ...rest });
           if (photos && typeof photos === "object") {
             clearAllPhotos()
               .then(() => Promise.all(Object.entries(photos).map(([id, dataUrl]) => savePhotoBlob(id, dataUrl))))
@@ -1799,7 +1826,7 @@ function App() {
   };
   const resetAll = () => {
     if (window.confirm("This deletes all logged data on this device permanently. Continue?")) {
-      persist({ stats: [], sessions: [], runs: [], ankle: { stage: 1, sessions: [] }, flexibility: [], nutrition: [], nutritionComplete: [], sleep: [], dateShiftDays: 0, pause: { active: false, startDate: null }, returnAdjustment: null, savedMeals: [], lockedTargets: {}, sessionDraft: null });
+      persist({ stats: [], sessions: [], runs: [], ankle: { stage: 1, sessions: [] }, flexibility: [], nutrition: [], nutritionComplete: [], sleep: [], steps: [], dateShiftDays: 0, pause: { active: false, startDate: null }, returnAdjustment: null, savedMeals: [], lockedTargets: {}, sessionDraft: null });
       clearAllPhotos().catch(() => {});
     }
   };
@@ -1875,6 +1902,10 @@ function App() {
   const statsShown = statsRecentCount + statsExtra;
   const sleepRecentCount = useMemo(() => data.sleep.filter(s => s.date >= twoWeekCutoffStr()).length, [data.sleep]);
   const sleepShown = sleepRecentCount + sleepExtra;
+  const stepsRecentCount = useMemo(() => data.steps.filter((s) => s.date >= twoWeekCutoffStr()).length, [data.steps]);
+  const stepsShown = stepsRecentCount + stepsExtra;
+  const stepsAvg7 = useMemo(() => recentAverage(data.steps, "steps", localDateStr()), [data.steps]);
+  const sleepAvg7 = useMemo(() => recentAverage(data.sleep, "hours", localDateStr()), [data.sleep]);
 
   const sectionLabel = id => {
     if (id === "data") return "Data";
@@ -2119,6 +2150,7 @@ function App() {
             <div style={{ display: "flex", gap: 6, marginBottom: 14 }}>
               <SubTab label="Measurements" active={bodySubTab === "measurements"} onClick={() => setBodySubTab("measurements")} />
               <SubTab label="Sleep" active={bodySubTab === "sleep"} onClick={() => setBodySubTab("sleep")} />
+              <SubTab label="Steps" active={bodySubTab === "steps"} onClick={() => setBodySubTab("steps")} />
               <SubTab label="Photos" active={bodySubTab === "photos"} onClick={() => setBodySubTab("photos")} />
             </div>
 
@@ -2173,6 +2205,11 @@ function App() {
                     }}
                   />
                 )}
+                <div style={{ ...card, padding: "10px 14px", marginBottom: 12 }}>
+                  <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em", color: "#6B6F63", marginBottom: 2 }}>Last 7 days</div>
+                  <div style={{ fontWeight: 700, fontSize: 17, color: sleepAvg7.avg == null ? "#6B6F63" : sleepAvg7.avg >= 7 ? GREEN_STATUS : sleepAvg7.avg >= 6 ? ORANGE_STATUS : RUST_STATUS }}>{sleepAvg7.avg == null ? "No nights logged" : sleepAvg7.avg.toFixed(1) + "h average"}</div>
+                  <div style={{ fontSize: 10.5, color: "#8A7B5C", marginTop: 2 }}>{sleepAvg7.n}/7 nights logged · target 7–9h. Averaging under 7h? Fix sleep before changing food or training.</div>
+                </div>
                 <div style={{ fontSize: 11.5, color: "#8FA38C", marginBottom: 6 }}>{data.sleep.length > 0 ? "Last 2 weeks" : ""}</div>
                 {data.sleep.length === 0 ? <EmptyState text="No sleep logged yet. Log it daily — doesn't need to line up with a weigh-in." /> :
                   data.sleep.slice(0, sleepShown).map((s, i) => (
@@ -2184,6 +2221,37 @@ function App() {
                     </Entry>
                   ))}
                 <ShowMoreButton remaining={data.sleep.length - sleepShown} onClick={() => setSleepExtra(v => v + 10)} />
+              </div>
+            )}
+            {bodySubTab === "steps" && (
+              <div>
+                <AddButton label={editingStepsIdx !== null ? "Editing entry — cancel" : "Log today's steps"} onClick={() => { if (editingStepsIdx !== null) { setEditingStepsIdx(null); setShowForm(null); } else setShowForm(showForm === "steps" ? null : "steps"); }} />
+                {showForm === "steps" && (
+                  <StepsForm
+                    initial={editingStepsIdx !== null ? data.steps[editingStepsIdx] : null}
+                    onSubmit={(e) => {
+                      if (editingStepsIdx !== null) { updateSteps(editingStepsIdx, e); setEditingStepsIdx(null); }
+                      else addSteps(e);
+                      setShowForm(null);
+                    }}
+                  />
+                )}
+                <div style={{ ...card, padding: "10px 14px", marginBottom: 12 }}>
+                  <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.06em", color: "#6B6F63", marginBottom: 2 }}>Last 7 days</div>
+                  <div style={{ fontWeight: 700, fontSize: 17, color: stepsAvg7.avg == null ? "#6B6F63" : stepsAvg7.avg >= 10000 ? GREEN_STATUS : stepsAvg7.avg >= 8000 ? ORANGE_STATUS : RUST_STATUS }}>{stepsAvg7.avg == null ? "No days logged" : Math.round(stepsAvg7.avg).toLocaleString("en-GB") + " steps/day average"}</div>
+                  <div style={{ fontSize: 10.5, color: "#8A7B5C", marginTop: 2 }}>{stepsAvg7.n}/7 days logged · goal 10,000/day (about 70,000 a week). The weekly average matters more than any single day.</div>
+                </div>
+                <div style={{ fontSize: 11.5, color: "#8FA38C", marginBottom: 6 }}>{data.steps.length > 0 ? "Last 2 weeks" : ""}</div>
+                {data.steps.length === 0 ? <EmptyState text="No steps logged yet. Copy your total from your phone's health app at the end of the day." /> :
+                  data.steps.slice(0, stepsShown).map((s, i) => (
+                    <Entry key={i} onEdit={() => { setEditingStepsIdx(i); setShowForm("steps"); }} onDelete={() => { if (editingStepsIdx === i) { setEditingStepsIdx(null); setShowForm(null); } deleteSteps(i); }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", paddingRight: 48 }}>
+                        <div style={{ fontSize: 15, fontWeight: 600 }}>{Number(s.steps).toLocaleString("en-GB")} steps{Number(s.steps) >= 10000 ? <span style={{ color: GREEN_STATUS, marginLeft: 6 }}>✓</span> : null}</div>
+                        <div style={{ fontSize: 11, color: "#6B6F63" }}>{formatShortDate(s.date)}</div>
+                      </div>
+                    </Entry>
+                  ))}
+                <ShowMoreButton remaining={data.steps.length - stepsShown} onClick={() => setStepsExtra((v) => v + 10)} />
               </div>
             )}
             {bodySubTab === "photos" && <PhotoJourney stats={data.stats} />}
