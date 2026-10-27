@@ -76,7 +76,7 @@ const EXERCISE_ESTIMATE_FROM = {
 const START_WEIGHTS = { "Bench Press": 50, "Pull-Downs": 42.5, "Leg Press": 60, "Shoulder Press (DB)": 35, "Leg Curl": 22.5, "Low Rows": 35, "DB Bench Press": 40, "RDL": 25, "Lateral Raises": 4.5, "Preacher Curl (machine)": 20, "Incline Press": 20, "Cable Row": 40, "Calf Raises": 45, "Triceps Pushdown": 12.5, "Hammer Curl (machine)": 17, "Dips (assisted)": 29, "Ab Crunch Machine": 15, "Captain's Chair Leg Raise": 0, "Weighted Sit-up": 5, "Twisted Knee Raise": 0, "Pec Deck Fly": 20, "Leg Extension": 25, "Pull-Ups (assisted)": 29, "Incline DB Curl": 6 };
 
 const PHASE_SESSIONS = [
-  { label: "3x/week full body — A / B / C rotation", framing: "Rebuild first: prioritize clean form and consistency as strength returns — weight increases will come as capability rebuilds, not before.", deload: "Deload every 5th week — same exercises, ~50% less volume.",
+  { label: "3x/week full body — A / B / C rotation", framing: "Rebuild first: prioritize clean form and consistency as strength returns — weight increases will come as capability rebuilds, not before.", deload: "One deload at week 14 (23–29 Nov) — same exercises, ~50% less volume. The layoff already worked as a rest.",
     sessions: {
       "Session A": [["Bench Press", "3 x 6-8"], ["Pull-Downs", "3 x 8-10"], ["Leg Press", "3 x 10-12"], ["Shoulder Press", "3 x 8-10"], ["Leg Curl", "3 x 10-12"], ["Pec Deck Fly", "3 x 12-15"], ["Lateral Raises", "3 x 12-15"], ["Ab Crunch Machine", "3 x 12-15"]],
       "Session B": [["Cable Row", "3 x 6-8"], ["DB Bench Press", "3 x 8-10"], ["RDL", "3 x 10-12"], ["Leg Extension", "3 x 10-12"], ["Lateral Raises", "3 x 12-15"], ["Preacher Curl (machine)", "3 x 12-15"], ["Captain's Chair Leg Raise", "3 x 10-12"]],
@@ -232,6 +232,8 @@ function proteinStatusLabel(value, floor, optimal) {
 }
 function isDeloadWeek(phaseIdx, weekInPhase) {
   if (phaseIdx === 2) return weekInPhase === 4;
+  // Phase 1: a single deload at week 14 (23-29 Nov 2026). The 30-day layoff acted as the earlier rest, so the usual every-5th-week (10, 15) pattern was dropped; week 15 is the 6 Dec checkpoint week.
+  if (phaseIdx === 0) return weekInPhase === 14;
   return weekInPhase > 0 && weekInPhase % 5 === 0;
 }
 function roundHalf(x) { return Math.round(x / 2.5) * 2.5; }
